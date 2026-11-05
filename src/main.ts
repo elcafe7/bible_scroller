@@ -43,8 +43,8 @@ function showError(msg: string, help = "") {
   errorBox.querySelector(".error-help")!.textContent = help;
   errorBox.hidden = false;
   body.classList.add("has-error");
-  stop();
-  showChrome();
+  stop({ keepChrome: true });
+  revealChrome();
 }
 function clearError() {
   errorBox.hidden = true;
@@ -59,11 +59,19 @@ function showNotice(msg: string) {
 }
 
 // ---------- chrome visibility ----------
-function showChrome() {
+/** Show chrome without starting an idle-hide timer (used by pause). */
+function revealChrome() {
+  clearTimeout(idleTimer);
   body.classList.remove("chrome-hidden");
+}
+function showChrome() {
+  revealChrome();
   scheduleHide();
 }
-/** Hide chrome when playing (idle) or when paused so the user can see the frozen passage. */
+/**
+ * Hide chrome while playing OR paused (frozen passage visible).
+ * Never hide during an error screen.
+ */
 function hideChrome() {
   if (!errorBox.hidden) return;
   if (scroller?.playing || body.classList.contains("paused")) {
@@ -73,6 +81,10 @@ function hideChrome() {
 function scheduleHide() {
   clearTimeout(idleTimer);
   if (scroller?.playing) idleTimer = window.setTimeout(hideChrome, IDLE_MS);
+}
+function hideChromeSoon() {
+  clearTimeout(idleTimer);
+  idleTimer = window.setTimeout(hideChrome, 900);
 }
 
 // ---------- range picker ----------
@@ -145,12 +157,12 @@ function applyModeUi(m: ScrollMode) {
   body.classList.toggle("mode-vertical", m === "vertical");
 }
 function setMode(m: ScrollMode) {
+  if (prefs.mode === m && scroller?.scrollMode === m) return;
   prefs.mode = m;
   applyModeUi(m);
   persist();
   if (!scroller) return;
   const wasPlaying = scroller.playing;
-  // Rebuild cleanly for the new mode from the current range/source.
   scroller.setMode(m);
   if (cursor) cursor.restart();
   scroller.reset();
@@ -200,6 +212,7 @@ async function applyRange(force = false): Promise<boolean> {
     const src = { next: () => cursor!.next(prefs.henry) };
     if (!scroller) scroller = new Scroller(stage, track, src, prefs.speed, prefs.mode);
     else {
+      scroller.pause();
       scroller.setSource(src);
       if (scroller.scrollMode !== prefs.mode) scroller.setMode(prefs.mode);
     }
@@ -211,13 +224,17 @@ async function applyRange(force = false): Promise<boolean> {
   }
 }
 
-function stop() {
+function stop(opts: { keepChrome?: boolean } = {}) {
   scroller?.pause();
   body.classList.remove("playing");
   body.classList.add("paused");
   clearTimeout(idleTimer);
-  showChrome(); // pause opens settings; Escape / tap-away can still dismiss to frozen view
+  if (!opts.keepChrome) revealChrome(); // pause opens settings; Escape / outside tap dismisses to frozen view
   updatePlayLabel();
+  // Blur play so a following Space doesn't double-activate the focused button + document handler.
+  if (document.activeElement instanceof HTMLElement && chrome.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
 }
 function start() {
   scroller!.play();
@@ -241,10 +258,6 @@ async function onPlay() {
     start();
     hideChromeSoon(); // Resume returns to the scroll experience
   }
-}
-function hideChromeSoon() {
-  clearTimeout(idleTimer);
-  idleTimer = window.setTimeout(hideChrome, 900);
 }
 
 // ---------- wiring ----------
@@ -272,32 +285,72 @@ function wire() {
     hideChromeSoon();
   });
 
-  // Tap / pointer / key reveals chrome; chrome interaction keeps it up.
-  // While paused, a second tap on the stage dismisses chrome so the frozen passage is visible.
-  stage.addEventListener("pointerdown", () => {
+  // Stage tap: while paused with chrome up, dismiss to frozen passage; otherwise reveal chrome.
+  stage.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();
     if (body.classList.contains("paused") && !body.classList.contains("chrome-hidden")) {
       hideChrome();
       return;
     }
     showChrome();
   });
+  // Click outside chrome while paused dismisses settings (chrome covers little of the stage on desktop).
+  document.addEventListener("pointerdown", (e) => {
+    if (!body.classList.contains("paused") || body.classList.contains("chrome-hidden")) return;
+    if (!errorBox.hidden) return;
+    const t = e.target;
+    if (t instanceof Node && chrome.contains(t)) return;
+    hideChrome();
+  });
   errorBox.addEventListener("pointerdown", showChrome);
-  chrome.addEventListener("pointerdown", showChrome);
-  chrome.addEventListener("focusin", () => { clearTimeout(idleTimer); body.classList.remove("chrome-hidden"); });
-  chrome.addEventListener("focusout", scheduleHide);
-  chrome.addEventListener("pointermove", scheduleHide);
+  // Interacting with chrome keeps it up while playing; do not fight pause-dismiss.
+  chrome.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();
+    if (scroller?.playing) showChrome();
+    else revealChrome();
+  });
+  chrome.addEventListener("focusin", () => {
+    clearTimeout(idleTimer);
+    body.classList.remove("chrome-hidden");
+  });
+  chrome.addEventListener("focusout", () => {
+    // Defer so a focus move within chrome doesn't flash-hide.
+    requestAnimationFrame(() => {
+      if (chrome.contains(document.activeElement)) return;
+      scheduleHide();
+    });
+  });
+  chrome.addEventListener("pointermove", () => {
+    if (scroller?.playing) scheduleHide();
+  });
   document.addEventListener("keydown", (e) => {
-    if (e.key === " " && !(e.target instanceof HTMLSelectElement) && !(e.target instanceof HTMLButtonElement) && !(e.target instanceof HTMLInputElement)) {
+    const tag = e.target;
+    const inField =
+      tag instanceof HTMLSelectElement ||
+      tag instanceof HTMLButtonElement ||
+      tag instanceof HTMLInputElement ||
+      tag instanceof HTMLTextAreaElement;
+
+    if (e.key === "Escape") {
       e.preventDefault();
-      void onPlay();
-    } else if (e.key === "Escape") {
       hideChrome();
       return;
     }
-    showChrome();
+    if (e.key === " " && !inField) {
+      e.preventDefault();
+      void onPlay();
+      return;
+    }
+    // Don't steal keys typed into controls; otherwise reveal chrome.
+    if (!inField) showChrome();
   });
-  document.addEventListener("visibilitychange", () => { if (document.hidden && scroller?.playing) stop(); });
-  window.addEventListener("resize", () => scroller?.setSpeed(prefs.speed));
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && scroller?.playing) stop();
+  });
+  window.addEventListener("resize", () => {
+    // Recalibrate speed only; do not rebuild the strip (avoids jumps).
+    scroller?.setSpeed(prefs.speed);
+  });
 }
 
 async function boot() {
@@ -323,7 +376,7 @@ async function boot() {
   applyTheme(prefs.theme);
   applyModeUi(prefs.mode);
   updatePlayLabel();
-  showChrome();
+  revealChrome();
 }
 
 void boot();

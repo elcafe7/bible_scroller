@@ -99,7 +99,7 @@ body.mode-horizontal #track {
 }
 body.mode-horizontal .item {
   max-width: none;
-  margin: 0 4em 0 0;
+  margin: 0;
   flex-shrink: 0;
   white-space: nowrap;
   display: inline-flex;
@@ -136,7 +136,7 @@ body.mode-horizontal .henry .ref { font-size: 0.55em; }
   transition: opacity 420ms ease, transform 420ms ease, visibility 0s linear 0s;
 }
 body.chrome-hidden .chrome {
-  opacity: 0; visibility: hidden; transform: translate(-50%, 12px);
+  opacity: 0; visibility: hidden; pointer-events: none; transform: translate(-50%, 12px);
   transition: opacity 700ms ease, transform 700ms ease, visibility 0s linear 700ms;
 }
 .chrome-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 0.9rem; }
