@@ -30,21 +30,17 @@
             <span>Scroll</span>
           </a>
         </div>
-        <label class="select-wrap" aria-label="Bible edition">
-          <select id="edition"></select>
-          <span aria-hidden="true">⌄</span>
-        </label>
       </header>
 
       <fieldset class="range">
         <legend>Start at</legend>
-        <label class="field book-field">
-          <span>Book</span>
-          <select id="book"></select>
-        </label>
-        <label class="field"><span>Chapter &amp; verse</span>
-          <span class="cv"><select id="sch" aria-label="Start chapter"></select><b>:</b><select id="sv" aria-label="Start verse"></select></span>
-        </label>
+        <button type="button" class="passage-btn" id="passage-btn" aria-haspopup="dialog" aria-controls="picker" title="Choose passage">
+          <span class="passage-field">
+            <svg class="passage-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 15l5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            <span id="passage-label">John 3:16 · Geneva</span>
+            <svg class="passage-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          </span>
+        </button>
         <p class="range-hint">Reads to the end of the book, then loops.</p>
       </fieldset>
 
@@ -85,6 +81,32 @@
       </div>
       <p class="hint">Start opens a full-screen scroll. Esc, Space, or a double-tap returns here.</p>
     </section>
+
+
+    <div class="picker-backdrop" id="picker" hidden>
+      <div class="picker-card" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+        <div class="picker-rule">
+          <span></span>
+          <h1 id="picker-title">Choose passage</h1>
+          <span></span>
+        </div>
+        <button class="picker-close" id="picker-close" type="button" aria-label="Close">✕</button>
+        <div class="picker-body">
+          <div class="segmented" id="picker-editions" role="group" aria-label="Edition"></div>
+          <div class="picker-nav" id="picker-nav" hidden>
+            <button class="picker-back" id="picker-back" type="button">‹ Books</button>
+            <p class="picker-crumb" id="picker-crumb"></p>
+          </div>
+          <div id="picker-step-books">
+            <label class="sr-only" for="picker-book-filter">Book or reference</label>
+            <input class="picker-filter" id="picker-book-filter" type="search" placeholder="Book or reference, e.g. 1 John 3:16" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
+            <p class="picker-hint" id="picker-hint" role="status" aria-live="polite"></p>
+            <div id="picker-books"></div>
+          </div>
+          <div class="picker-grid numbers" id="picker-numbers" hidden></div>
+        </div>
+      </div>
+    </div>
 
     <footer id="site-footer">
       <p class="shortcuts"><kbd>Esc</kbd><kbd>Space</kbd> return</p>

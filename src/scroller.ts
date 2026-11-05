@@ -6,10 +6,18 @@ export function setCommentaryName(n: string) { commentaryName = n; }
 /** Vertical reading pace in CSS lines per minute. Tuned so Fast feels brisk continuous reading (not a crawl); still far slower than a stock ticker. */
 export const SPEED_LPM: Record<Speed, number> = { slow: 48, medium: 80, fast: 130 };
 
-/** Horizontal ticker: characters per minute at reading pace (not flash-ticker speeds). */
-export const SPEED_CPM: Record<Speed, number> = { slow: 900, medium: 1200, fast: 1620 };
+/**
+ * Horizontal ticker CPM — separate curve from vertical. Marquee tracking feels faster
+ * than vertical LPM at the same "Slow", so Slow/Medium sit lower; Fast stays ~reading-brisk.
+ * Before: {900, 1200, 1620} (Slow felt fast). After: clear ~1.8× steps, Fast unchanged.
+ */
+export const SPEED_CPM: Record<Speed, number> = { slow: 480, medium: 900, fast: 1620 };
 
-export interface ScrollerSource { next(): LoopItem | null }
+export interface ScrollerSource {
+  next(): LoopItem | null;
+  /** True when the next next() yields a pending commentary note (pair with prior verse in ticker). */
+  hasPendingCommentary?: () => boolean;
+}
 
 function el(tag: string, cls?: string, text?: string) {
   const n = document.createElement(tag);
@@ -18,12 +26,12 @@ function el(tag: string, cls?: string, text?: string) {
   return n;
 }
 
-/** Collapse wrapping whitespace but keep the NBSP+space double-gap after periods. */
+/** Collapse wrapping whitespace but keep NBSP runs (commentary double-gap after periods). */
 function flattenText(text: string): string {
   return text
-    .replace(/\u00A0 /g, "\u0000")
+    .replace(/\u00A0+/g, (m) => "\u0001".repeat(m.length))
     .replace(/\s+/g, " ")
-    .replace(/\u0000/g, "\u00A0 ")
+    .replace(/\u0001/g, "\u00A0")
     .trim();
 }
 
@@ -58,25 +66,48 @@ export function renderItem(item: LoopItem, mode: ScrollMode = "vertical"): HTMLE
   return n;
 }
 
-/** One-line strip: ref + body on a single nowrap row for the horizontal ticker. */
+/** One verse row for the horizontal ticker. */
+function renderHorizontalVerse(item: Extract<LoopItem, { kind: "verse" }>): HTMLElement {
+  const row = el("div", "ticker-row verse-row");
+  row.append(
+    el("span", "ref", `${item.book} ${item.chapter}:${item.verse}`),
+    el("span", "body", flattenText(item.text)),
+  );
+  return row;
+}
+
+/** One commentary row (ref + body) for the horizontal ticker. */
+function renderHorizontalHenry(item: Extract<LoopItem, { kind: "henry" }>): HTMLElement {
+  const row = el("div", "ticker-row henry-row");
+  const span = item.verse_start === item.verse_end ? `${item.verse_start}` : `${item.verse_start}–${item.verse_end}`;
+  let label = `${commentaryName} · ${item.book} ${item.chapter}:${span}`;
+  if (item.section_title) label += ` — ${item.section_title}`;
+  row.append(el("span", "ref", label), el("span", "body", flattenText(item.text)));
+  return row;
+}
+
+/** Standalone ticker item. Commentary alone is one henry-row (ref + body). */
 function renderHorizontalItem(item: LoopItem): HTMLElement {
   if (item.kind === "verse") {
     const n = el("article", "item verse");
-    n.append(
-      el("span", "ref", `${item.book} ${item.chapter}:${item.verse}`),
-      el("span", "body", flattenText(item.text)),
-    );
+    const row = renderHorizontalVerse(item);
+    n.append(row.querySelector(".ref")!, row.querySelector(".body")!);
     return n;
   }
   const n = el("aside", "item henry");
   n.setAttribute("aria-label", commentaryName);
-  const span = item.verse_start === item.verse_end ? `${item.verse_start}` : `${item.verse_start}–${item.verse_end}`;
-  let label = `${commentaryName} · ${item.book} ${item.chapter}:${span}`;
-  if (item.section_title) label += ` — ${item.section_title}`;
-  n.append(
-    el("span", "ref", label),
-    el("span", "body", flattenText(item.text)),
-  );
+  n.append(renderHorizontalHenry(item));
+  return n;
+}
+
+/** Verse on top, commentary on the line below — one scrolling unit. */
+function renderHorizontalPair(
+  verse: Extract<LoopItem, { kind: "verse" }>,
+  note: Extract<LoopItem, { kind: "henry" }>,
+): HTMLElement {
+  const n = el("div", "item pair ticker-stack");
+  n.setAttribute("aria-label", `${verse.book} ${verse.chapter}:${verse.verse}, then ${commentaryName}`);
+  n.append(renderHorizontalVerse(verse), renderHorizontalHenry(note));
   return n;
 }
 
@@ -226,6 +257,17 @@ export class Scroller {
     if (this.track.childElementCount > 0) return;
     const item = this.source.next();
     if (!item) return;
+    // Pair last covered verse with its pending commentary on a second ticker line.
+    if (
+      item.kind === "verse" &&
+      this.source.hasPendingCommentary?.()
+    ) {
+      const note = this.source.next();
+      if (note && note.kind === "henry") {
+        this.track.append(renderHorizontalPair(item, note));
+        return;
+      }
+    }
     this.track.append(renderItem(item, "horizontal"));
   }
 

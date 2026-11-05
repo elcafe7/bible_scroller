@@ -99,8 +99,7 @@ export function stripRequote(text: string): string {
 /**
  * Commentary display polish for Henry/Calvin:
  * - keep blank-line paragraph breaks (render splits on \n\n)
- * - double-space after each period so sentence rhythm matches print commentary
- *   (NBSP + space so HTML / ticker whitespace collapse still shows two spaces)
+ * - double gap after each period (two NBSP — never collapsed by HTML/CSS whitespace)
  */
 export function formatCommentaryText(text: string): string {
   const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
@@ -109,7 +108,8 @@ export function formatCommentaryText(text: string): string {
     .split(/\n\s*\n/)
     .map((para) => {
       const line = para.replace(/\s*\n\s*/g, " ").replace(/[ \t]+/g, " ").trim();
-      return line.replace(/\.(\s+)(?=\S)/g, ".\u00A0 ");
+      // Two NBSP after "." — \s matches NBSP, so flattenText must protect \u00A0 runs.
+      return line.replace(/\.(\s+)(?=\S)/g, ".\u00A0\u00A0");
     })
     .filter(Boolean)
     .join("\n\n");

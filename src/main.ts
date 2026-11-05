@@ -1,20 +1,20 @@
 import * as fullscreen from "./fullscreen";
 import { canonBooks, resolveFromStart } from "./canon";
 import { createLoader, DataError } from "./loader";
-import { groupBooks, loadPrefs, loadTheme, savePrefs, safeStorage } from "./prefs";
+import { createPassagePicker, type PickerEdition } from "./picker";
+import { loadPrefs, loadTheme, savePrefs, safeStorage } from "./prefs";
 import { setCommentaryName, Scroller } from "./scroller";
 import { LoopCursor } from "./sequence";
 import type { Commentary, FontSize, GenevaBook, GenevaMeta, HenryBook, Prefs, ScrollMode, Speed, Theme } from "./types";
+import * as wakelock from "./wakelock";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const body = document.body;
 const stage = $<HTMLElement>("stage");
 const track = $<HTMLElement>("track");
 const chrome = $<HTMLElement>("chrome");
-const editionSel = $<HTMLSelectElement>("edition");
-const bookSel = $<HTMLSelectElement>("book");
-const sch = $<HTMLSelectElement>("sch");
-const sv = $<HTMLSelectElement>("sv");
+const passageBtn = $<HTMLButtonElement>("passage-btn");
+const passageLabel = $<HTMLElement>("passage-label");
 const henryNa = $<HTMLElement>("henry-na");
 const commentaryAvail = new Map<Commentary, Set<string>>();
 const commentaryBtns = [...document.querySelectorAll<HTMLButtonElement>("[data-commentary]")];
@@ -45,6 +45,9 @@ let idleTimer = 0;
 let firstTap: { t: number; x: number; y: number } | null = null;
 const bookCache = new Map<string, GenevaBook>();
 const commentaryCache = new Map<string, HenryBook | null>();
+/** Land-picker draft start (committed to prefs on Start / picker confirm). */
+let draft: Prefs["range"] | null = null;
+let picker: ReturnType<typeof createPassagePicker> | null = null;
 
 function showError(msg: string, help = "") {
   errorBox.querySelector(".error-msg")!.textContent = msg;
@@ -85,22 +88,42 @@ function armIdle() {
 }
 
 const metaBook = (id: string) => canonBooks(meta!).find((b) => b.book_id === id)!;
-function fillNums(sel: HTMLSelectElement, n: number, value: number) {
-  if (sel.options.length !== n) {
-    sel.replaceChildren(...Array.from({ length: n }, (_, i) => new Option(String(i + 1), String(i + 1))));
-  }
-  sel.value = String(Math.min(Math.max(1, value), n));
+
+function editionShort(m: GenevaMeta): string {
+  const n = m.edition_name;
+  if (/geneva/i.test(n)) return "Geneva";
+  return n.split("(")[0]!.trim() || n;
 }
-function syncPicker() {
-  const mb = metaBook(bookSel.value);
-  fillNums(sch, mb.chapters, +sch.value || 1);
-  fillNums(sv, mb.verse_counts[+sch.value - 1] || 1, +sv.value || 1);
+
+function editionsForPicker(): PickerEdition[] {
+  const m = meta!;
+  return [{ id: m.edition_id, short: editionShort(m), name: m.edition_name }];
+}
+
+function pickerStart(): Prefs["range"] {
+  return draft ?? prefs.range;
+}
+
+function syncPassageLabel() {
+  const r = pickerStart();
+  const mb = metaBook(r.book_id);
+  const ed = meta ? editionShort(meta) : "Geneva";
+  passageLabel.textContent = `${mb.book} ${r.start.chapter}:${r.start.verse} · ${ed}`;
+  passageBtn.setAttribute("aria-label", `${passageLabel.textContent}, change passage`);
   updateHenryNa();
 }
+
+function setDraft(r: Prefs["range"]) {
+  draft = { book_id: r.book_id, start: { ...r.start } };
+  syncPassageLabel();
+  updatePlayLabel();
+}
+
 function updateHenryNa() {
   const c = prefs?.commentary ?? "none";
   const avail = commentaryAvail.get(c);
-  const na = c !== "none" && !!avail && !avail.has(bookSel.value);
+  const bookId = pickerStart().book_id;
+  const na = c !== "none" && !!avail && !avail.has(bookId);
   henryNa.textContent = na ? `${COMMENTARY_NAME[c]} isn’t available for this book.` : "";
   henryNa.hidden = !na;
 }
@@ -118,25 +141,8 @@ function setSize(z: FontSize) {
   if (prefs) { prefs.fontSize = z; persist(); }
   if (prefs) scroller?.setSpeed(prefs.speed);
 }
-function setPicker(r: Prefs["range"]) {
-  bookSel.value = r.book_id;
-  const mb = metaBook(r.book_id);
-  fillNums(sch, mb.chapters, r.start.chapter);
-  fillNums(sv, mb.verse_counts[r.start.chapter - 1] || 1, r.start.verse);
-  updateHenryNa();
-}
-function pickerStart(): Prefs["range"] {
-  return { book_id: bookSel.value, start: { chapter: +sch.value, verse: +sv.value } };
-}
 const startKey = (r: Prefs["range"]) => `${r.book_id}:${r.start.chapter}:${r.start.verse}`;
 
-
-function fillEditionOptions(m: GenevaMeta) {
-  const editions = [{ id: m.edition_id, name: m.edition_name }];
-  editionSel.replaceChildren(...editions.map((e) => new Option(e.name, e.id)));
-  editionSel.value = m.edition_id;
-  editionSel.disabled = editions.length <= 1;
-}
 function updatePlayLabel() {
   const dirty = startKey(pickerStart()) !== appliedKey;
   playBtn.textContent = !scroller || dirty ? "Start" : "Resume";
@@ -203,6 +209,13 @@ async function ensureCommentary() {
   }
 }
 
+function makeSource() {
+  return {
+    next: () => cursor!.next(prefs.commentary !== "none"),
+    hasPendingCommentary: () => prefs.commentary !== "none" && !!cursor?.hasPending(),
+  };
+}
+
 async function applyStart(force = false): Promise<boolean> {
   const r = pickerStart();
   const key = startKey(r);
@@ -213,13 +226,15 @@ async function applyStart(force = false): Promise<boolean> {
     if (!verses.length) throw new DataError("range_invalid", "No verses in that passage.");
     clearError();
     prefs.range = { book_id: r.book_id, start: r.start };
+    draft = { book_id: r.book_id, start: { ...r.start } };
     persist();
+    syncPassageLabel();
     const commentary = prefs.commentary !== "none" ? await ensureCommentaryMap(r.book_id) : null;
     cursor = new LoopCursor(verses, commentary);
     appliedKey = key;
     henryNoticeShown = false;
     await ensureCommentary();
-    const src = { next: () => cursor!.next(prefs.commentary !== "none") };
+    const src = makeSource();
     if (!scroller) scroller = new Scroller(stage, track, src, prefs.speed, prefs.mode);
     else {
       scroller.pause();
@@ -239,6 +254,7 @@ function beginRun() {
   running = true;
   showStage();
   scroller.play();
+  void wakelock.request();
   updatePlayLabel();
   armIdle();
 }
@@ -248,6 +264,7 @@ function stop() {
   clearTimeout(idleTimer);
   body.classList.remove("idle");
   scroller?.pause();
+  void wakelock.release();
   fullscreen.exit();
   showSettings();
   updatePlayLabel();
@@ -276,15 +293,16 @@ async function onRestart() {
   beginRun();
 }
 
+function openPicker() {
+  if (!picker || !meta) return;
+  const r = pickerStart();
+  picker.open({ book_id: r.book_id, start: r.start, edition_id: meta.edition_id });
+}
+
 function wire() {
   fullscreen.init(() => stop());
-  editionSel.addEventListener("change", () => { /* only Geneva ships today */ });
-  bookSel.addEventListener("change", () => {
-    const mb = metaBook(bookSel.value);
-    setPicker({ book_id: mb.book_id, start: { chapter: 1, verse: 1 } });
-    updatePlayLabel();
-  });
-  for (const s of [sch, sv]) s.addEventListener("change", () => { syncPicker(); updatePlayLabel(); });
+  wakelock.init();
+  passageBtn.addEventListener("click", () => openPicker());
   for (const b of commentaryBtns) b.addEventListener("click", () => { henryNoticeShown = false; setCommentary(b.dataset.commentary as Commentary); });
   for (const b of sizeBtns) b.addEventListener("click", () => setSize(b.dataset.size as FontSize));
   for (const b of speedBtns) b.addEventListener("click", () => setSpeed(b.dataset.speed as Speed));
@@ -305,6 +323,7 @@ function wire() {
   });
   document.addEventListener("pointermove", () => { if (running) armIdle(); });
   document.addEventListener("keydown", (e) => {
+    if (picker?.isOpen()) return; // picker owns Escape
     if (running) {
       if (e.key === "Escape" || e.key === " " || e.code === "Space") { e.preventDefault(); stop(); }
       return;
@@ -332,13 +351,14 @@ async function boot() {
     return;
   }
   $<HTMLElement>("boot").remove();
-  bookSel.replaceChildren(...groupBooks(canonBooks(meta)).map(([label, bs]) => {
-    const g = document.createElement("optgroup");
-    g.label = label;
-    g.append(...bs.map((b) => new Option(b.book, b.book_id)));
-    return g;
-  }));
-  fillEditionOptions(meta);
+  picker = createPassagePicker({
+    root: $<HTMLElement>("picker"),
+    getMeta: () => meta!,
+    getEditions: editionsForPicker,
+    onSelect: (sel) => {
+      setDraft({ book_id: sel.book_id, start: sel.start });
+    },
+  });
   for (const c of ["henry", "calvin"] as const) {
     void loader.loadCommentaryMeta(c).then((m) => {
       commentaryAvail.set(c, new Set(m?.books.map((b) => b.book_id) ?? []));
@@ -346,7 +366,8 @@ async function boot() {
     });
   }
   prefs = loadPrefs(storage, meta);
-  setPicker(prefs.range);
+  draft = { book_id: prefs.range.book_id, start: { ...prefs.range.start } };
+  syncPassageLabel();
   setCommentary(prefs.commentary);
   setSize(prefs.fontSize);
   setSpeed(prefs.speed);

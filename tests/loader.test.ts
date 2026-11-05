@@ -122,7 +122,7 @@ describe("formatCommentaryText", () => {
   it("double-spaces after periods and keeps paragraph breaks", () => {
     const out = formatCommentaryText("First sentence. Second sentence.\n\nNew paragraph. More.");
     expect(out.split("\n\n")).toHaveLength(2);
-    expect(out).toContain(".\u00A0 Second");
-    expect(out).toContain(".\u00A0 More");
+    expect(out).toContain(".\u00A0\u00A0Second");
+    expect(out).toContain(".\u00A0\u00A0More");
   });
 });

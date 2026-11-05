@@ -93,8 +93,8 @@ body.state-running.idle #stage { cursor: none; }
 }
 .henry .ref { font-size: 0.54em; color: var(--accent); opacity: 0.8; }
 .henry .ref .title { text-transform: none; letter-spacing: 0.02em; font-style: italic; font-family: var(--serif); font-size: 1.25em; color: var(--ink-quiet); }
-.henry p { white-space: pre-wrap; }
-.henry p + p { margin-top: 0.8em; }
+.henry p { white-space: pre-wrap; } /* pre-wrap keeps NBSP double-gaps after periods */
+.henry p + p { margin-top: 1.35em; } /* clear paragraph break */
 
 /* ---------- horizontal ticker mode ---------- */
 body.mode-horizontal #stage {
@@ -132,6 +132,7 @@ body.mode-horizontal .item .ref {
 }
 body.mode-horizontal .item .body {
   display: inline;
+  white-space: pre; /* preserve NBSP double-gap after periods in ticker */
 }
 body.mode-horizontal .henry {
   padding-left: 0;
@@ -141,6 +142,33 @@ body.mode-horizontal .henry {
   opacity: 0.92;
 }
 body.mode-horizontal .henry .ref { font-size: 0.55em; }
+
+/* Two-line ticker: verse on top, commentary below (one scrolling unit). */
+body.mode-horizontal .item.ticker-stack,
+body.mode-horizontal .item.pair {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.35em;
+  white-space: normal;
+}
+body.mode-horizontal .ticker-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.85em;
+  white-space: nowrap;
+  max-width: none;
+}
+body.mode-horizontal .ticker-row .body { white-space: pre; }
+body.mode-horizontal .henry-row {
+  font-size: 0.86em;
+  opacity: 0.92;
+  padding-left: 0.15em;
+  border-left: 2px solid var(--rule);
+  padding-left: 0.65em;
+}
+body.mode-horizontal .henry-row .ref { font-size: 0.55em; color: var(--accent); }
 
 /* ---------- settings page (not an overlay) ---------- */
 /* Word/Verse land chrome: boxy card, AP + S wordmark, edition select, muted footer. */
@@ -296,3 +324,119 @@ body.size-xl { --verse-size: clamp(2rem, 1.4rem + 2.6vw, 3.4rem); }
 /* Ticker-only XL: large ambient read-from-across-the-room size (vertical XL unchanged). */
 body.mode-horizontal.size-xl .item { font-size: clamp(2.6rem, 1.2rem + 5.2vw, 5.75rem); }
 body.mode-horizontal.size-xl .henry { font-size: clamp(2.2rem, 1rem + 4.4vw, 4.9rem); }
+
+/* ---------- Word-style passage button + picker ---------- */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+.passage-btn {
+  width: 100%; min-height: 52px; padding: 0 14px;
+  display: flex; align-items: center;
+  background: var(--field-bg); border: 1px solid var(--field-border); border-radius: 4px;
+  cursor: pointer; text-align: left; color: var(--ink);
+  font-family: var(--serif); font-size: 1.12rem;
+}
+.passage-btn:hover { border-color: var(--border-strong, var(--rule)); background: var(--surface-hover); }
+.passage-field {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0;
+}
+.passage-field #passage-label {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.passage-icon, .passage-caret { width: 18px; height: 18px; flex-shrink: 0; color: var(--ink-quiet); }
+.passage-caret { width: 16px; height: 16px; }
+
+.picker-backdrop {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid; place-items: center;
+  padding: 20px;
+}
+.picker-backdrop[hidden] { display: none !important; }
+.picker-card {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 40px);
+  display: flex; flex-direction: column;
+  background: var(--panel); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 4px;
+  box-shadow: var(--panel-shadow);
+  overflow: hidden;
+}
+.picker-card::before {
+  position: absolute; inset: 8px; border: 1px solid var(--rule);
+  content: ""; pointer-events: none; border-radius: 2px;
+}
+.picker-rule {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px;
+  padding: 22px 40px 8px; flex-shrink: 0;
+}
+.picker-rule h1 {
+  margin: 0; font-family: var(--serif); font-size: 1.15rem; font-weight: 600; text-align: center;
+}
+.picker-rule span { height: 1px; background: var(--rule); }
+.picker-close {
+  position: absolute; top: 14px; right: 14px; z-index: 2;
+  width: 36px; height: 36px; border: 0; border-radius: 3px;
+  background: transparent; color: var(--ink-soft); cursor: pointer; font-size: 1.1rem;
+}
+.picker-close:hover { background: var(--surface-hover); color: var(--ink); }
+.picker-body {
+  padding: 8px 22px 22px; overflow: auto; display: grid; gap: 12px; min-height: 0;
+}
+.segmented {
+  display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 3px;
+  border: 1px solid var(--rule); border-radius: 4px; justify-self: start;
+}
+.segmented button {
+  min-height: 36px; padding: 0 0.85rem; border: 0; border-radius: 3px;
+  background: none; color: var(--ink-soft); cursor: pointer; font-size: 0.85rem; font-weight: 650;
+}
+.segmented button[aria-pressed="true"] {
+  background: var(--surface-hover); color: var(--ink);
+}
+.picker-nav {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 28px;
+}
+.picker-back {
+  padding: 4px 0; border: 0; background: none; color: var(--accent);
+  font-family: var(--serif); font-size: 0.95rem; cursor: pointer;
+}
+.picker-crumb { margin: 0; color: var(--ink-quiet); font-family: var(--serif); font-size: 0.95rem; }
+.picker-filter {
+  width: 100%; height: 48px; padding: 0 14px;
+  border: 1px solid var(--field-border); border-radius: 4px;
+  background: var(--field-bg); color: var(--ink);
+  font-family: var(--serif); font-size: 1.05rem;
+}
+.picker-filter:focus { border-color: var(--accent); outline: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
+.picker-hint { min-height: 1.1em; margin: 0 2px; color: var(--ink-quiet); font-size: 0.78rem; }
+.picker-hint:empty { min-height: 0; }
+.picker-heading {
+  margin: 8px 0 4px; color: var(--ink-quiet);
+  font-size: 0.63rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.picker-grid { display: grid; gap: 6px; }
+.picker-grid.books { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+.picker-grid.numbers { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); }
+.picker-grid button {
+  min-width: 44px; min-height: 44px; padding: 0 8px;
+  border: 1px solid var(--rule); border-radius: 3px;
+  background: var(--field-bg); color: var(--ink);
+  font-family: var(--serif); font-size: 0.9rem; cursor: pointer;
+}
+.picker-grid.books button { text-align: left; padding: 0 12px; }
+.picker-grid button:hover { background: var(--surface-hover); }
+.picker-grid button.current {
+  border-color: var(--accent); color: var(--accent); font-weight: 650;
+}
+.picker-suggest { display: grid; gap: 6px; }
+.picker-suggest button {
+  min-height: 44px; padding: 0 14px; text-align: left;
+  border: 1px solid var(--rule); border-radius: 3px;
+  background: var(--field-bg); color: var(--ink);
+  font-family: var(--serif); cursor: pointer;
+}
+.picker-suggest button:hover { background: var(--surface-hover); }
+.picker-empty { margin: 0; color: var(--ink-quiet); font-family: var(--serif); }
