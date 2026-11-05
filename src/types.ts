@@ -74,8 +74,10 @@ export type LoopItem =
     };
 
 export type Speed = "slow" | "medium" | "fast";
+export type Theme = "light" | "dark";
 export interface Prefs {
   range: { book_id: string; start: VersePoint; end: VersePoint };
   henry: boolean;
   speed: Speed;
+  theme: Theme;
 }

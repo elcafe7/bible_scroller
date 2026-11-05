@@ -1,7 +1,18 @@
-import type { GenevaMeta, Prefs, Speed } from "./types";
+import type { GenevaMeta, Prefs, Speed, Theme } from "./types";
 
 export const PREFS_KEY = "bible_scroller.v1";
 const SPEEDS: Speed[] = ["slow", "medium", "fast"];
+const THEMES: Theme[] = ["light", "dark"];
+
+/** Theme only, readable before meta loads so the page paints in the right palette. */
+export function loadTheme(storage: KV): Theme {
+  try {
+    const t = (JSON.parse(storage.getItem(PREFS_KEY) ?? "null") as Partial<Prefs> | null)?.theme;
+    return THEMES.includes(t as Theme) ? (t as Theme) : "light";
+  } catch {
+    return "light";
+  }
+}
 
 export interface KV { getItem(k: string): string | null; setItem(k: string, v: string): void }
 
@@ -30,6 +41,7 @@ export function defaultPrefs(meta: GenevaMeta): Prefs {
     range: { book_id: mb.book_id, start: { chapter: 1, verse: 1 }, end: { chapter: 1, verse: mb.verse_counts[0] || 1 } },
     henry: false,
     speed: "medium",
+    theme: "light",
   };
 }
 
@@ -61,6 +73,7 @@ export function loadPrefs(storage: KV, meta: GenevaMeta): Prefs {
     range: validRange(meta, p.range) ? p.range : d.range,
     henry: typeof p.henry === "boolean" ? p.henry : d.henry,
     speed: SPEEDS.includes(p.speed as Speed) ? (p.speed as Speed) : d.speed,
+    theme: THEMES.includes(p.theme as Theme) ? (p.theme as Theme) : d.theme,
   };
 }
 

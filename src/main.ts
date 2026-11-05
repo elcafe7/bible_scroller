@@ -1,8 +1,8 @@
 import { createLoader, DataError } from "./loader";
-import { loadPrefs, savePrefs, safeStorage } from "./prefs";
+import { loadPrefs, loadTheme, savePrefs, safeStorage } from "./prefs";
 import { Scroller } from "./scroller";
 import { LoopCursor, resolveRange } from "./sequence";
-import type { GenevaBook, GenevaMeta, HenryBook, Prefs, Speed } from "./types";
+import type { GenevaBook, GenevaMeta, HenryBook, Prefs, Speed, Theme } from "./types";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const body = document.body;
@@ -20,6 +20,7 @@ const restartBtn = $<HTMLButtonElement>("restart");
 const notice = $<HTMLElement>("notice");
 const errorBox = $<HTMLElement>("error");
 const speedBtns = [...document.querySelectorAll<HTMLButtonElement>(".speed button")];
+const themeBtns = [...document.querySelectorAll<HTMLButtonElement>(".theme button")];
 
 const loader = createLoader();
 const storage = safeStorage();
@@ -122,6 +123,17 @@ function setSpeed(s: Speed) {
   persist();
 }
 
+function applyTheme(t: Theme) {
+  document.documentElement.dataset.theme = t;
+  for (const b of themeBtns) b.setAttribute("aria-checked", String(b.dataset.themeChoice === t));
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "dark" ? "#1c2027" : "#ffffff");
+}
+function setTheme(t: Theme) {
+  applyTheme(t);
+  if (prefs) { prefs.theme = t; persist(); }
+}
+applyTheme(loadTheme(storage));
+
 // ---------- loading + playback ----------
 async function getHenry(bookId: string): Promise<HenryBook | null> {
   if (!henryCache.has(bookId)) henryCache.set(bookId, await loader.loadHenryBook(bookId));
@@ -213,6 +225,7 @@ function wire() {
     if (prefs.henry) void ensureHenry();
   });
   for (const b of speedBtns) b.addEventListener("click", () => setSpeed(b.dataset.speed as Speed));
+  for (const b of themeBtns) b.addEventListener("click", () => setTheme(b.dataset.themeChoice as Theme));
   playBtn.addEventListener("click", () => void onPlay());
   restartBtn.addEventListener("click", async () => {
     if (!(await applyRange(true))) return;
@@ -260,6 +273,7 @@ async function boot() {
   setPicker(prefs.range);
   henryBox.checked = prefs.henry;
   setSpeed(prefs.speed);
+  applyTheme(prefs.theme);
   updatePlayLabel();
   showChrome();
 }

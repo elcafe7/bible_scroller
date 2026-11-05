@@ -3,8 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#12100e" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#ffffff" />
+    <script>try{var t=JSON.parse(localStorage.getItem("bible_scroller.v1")||"null");document.documentElement.dataset.theme=t&&t.theme==="dark"?"dark":"light"}catch(e){document.documentElement.dataset.theme="light"}</script>
     <title>Bible scroller</title>
     <link rel="stylesheet" href="./src/style.css" />
   </head>
@@ -53,6 +54,10 @@
           <button type="button" role="radio" data-speed="slow">Slow</button>
           <button type="button" role="radio" data-speed="medium">Medium</button>
           <button type="button" role="radio" data-speed="fast">Fast</button>
+        </div>
+        <div class="theme" role="radiogroup" aria-label="Theme">
+          <button type="button" role="radio" data-theme-choice="light">Light</button>
+          <button type="button" role="radio" data-theme-choice="dark">Dark</button>
         </div>
       </div>
 

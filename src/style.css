@@ -1,17 +1,43 @@
 :root {
-  --bg: #12100e;
-  --ink: #ece4d6;
-  --ink-soft: #b9ae9c;
-  --ink-quiet: #8d8373;
-  --rule: #3a332b;
-  --accent: #d8b878;
-  --panel: rgba(22, 19, 16, 0.94);
+  /* Light (default): Word light theme, word-src :root[data-theme="light"]. */
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #000000;
+  --ink-soft: #000000;
+  --ink-quiet: #000000;
+  --rule: #000000;
+  --accent: #000000;
+  --panel: rgba(255, 255, 255, 0.94);
+  --field-bg: #f7f7f7;
+  --field-bg-hover: #ececec;
+  --field-border: #767676;
+  --surface-hover: #ececec;
+  --panel-shadow: 0 24px 54px rgba(0, 0, 0, 0.14);
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", "URW Palladio L", P052, Georgia, "Times New Roman", serif;
-  --ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ui: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --measure: 32em;
   --verse-size: clamp(1.3rem, 0.95rem + 1.5vw, 2.15rem);
   --leading: 1.62;
   --gap: 1.9em;
+}
+:root[data-theme="dark"] {
+  /* Dark: Word cool-slate palette (word-src/src/styles.css :root). */
+  color-scheme: dark;
+  --bg: #1c2027;
+  --bg-deep: #171a20;
+  --ink: #e4e8ee;
+  --ink-soft: #b3b7be;
+  --ink-quiet: #b3b7be;
+  --faint: #80848b;
+  --rule: rgba(196, 206, 222, 0.26);
+  --accent: #e6a65a;
+  --accent-bright: #f7c785;
+  --panel: rgba(38, 43, 52, 0.92);
+  --field-bg: rgba(255, 255, 255, 0.07);
+  --field-bg-hover: rgba(255, 255, 255, 0.11);
+  --field-border: rgba(196, 206, 222, 0.6);
+  --surface-hover: #30363f;
+  --panel-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
 }
 
 * { box-sizing: border-box; }
@@ -62,7 +88,7 @@ body.playing.chrome-hidden #stage { cursor: none; }
   padding: 1.25rem 1.4rem 1.1rem;
   background: var(--panel); border: 1px solid var(--rule); border-radius: 14px;
   font-family: var(--ui); font-size: 0.95rem; color: var(--ink);
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+  box-shadow: var(--panel-shadow);
   transition: opacity 420ms ease, transform 420ms ease, visibility 0s linear 0s;
 }
 body.chrome-hidden .chrome {
@@ -82,7 +108,7 @@ legend { padding: 0; margin-bottom: 0.45rem; font-size: 0.72rem; letter-spacing:
 .cv b { color: var(--ink-quiet); font-weight: 400; }
 select {
   min-height: 44px; padding: 0 0.6rem; width: 100%;
-  background: #1c1915; border: 1px solid var(--rule); border-radius: 8px;
+  background: var(--field-bg); border: 1px solid var(--field-border); border-radius: 8px;
 }
 .cv select { min-width: 0; }
 .quick { display: flex; gap: 1.1rem; }
@@ -90,11 +116,11 @@ select {
 .options { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.8rem; margin: 1rem 0; padding-top: 1rem; border-top: 1px solid var(--rule); }
 .toggle { display: flex; align-items: center; gap: 0.55rem; min-height: 44px; cursor: pointer; }
 .toggle input { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); }
-.speed { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 3px; }
-.speed button { min-height: 38px; padding: 0 0.85rem; border: 0; border-radius: 999px; background: none; color: var(--ink-soft); cursor: pointer; }
-.speed button[aria-checked="true"] { background: #2b261f; color: var(--ink); }
+.speed, .theme { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 3px; }
+.speed button, .theme button { min-height: 38px; padding: 0 0.85rem; border: 0; border-radius: 999px; background: none; color: var(--ink-soft); cursor: pointer; }
+.speed button[aria-checked="true"], .theme button[aria-checked="true"] { background: var(--surface-hover); color: var(--ink); }
 .actions { display: flex; gap: 0.6rem; }
-.actions button { min-height: 46px; padding: 0 1.2rem; border-radius: 10px; border: 1px solid var(--rule); background: #1c1915; cursor: pointer; }
+.actions button { min-height: 46px; padding: 0 1.2rem; border-radius: 10px; border: 1px solid var(--rule); background: var(--field-bg); cursor: pointer; }
 .actions .primary { flex: 1; background: var(--ink); color: var(--bg); border-color: var(--ink); font-weight: 600; }
 button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 

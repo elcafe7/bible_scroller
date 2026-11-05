@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createLoader } from "../src/loader";
-import { defaultPrefs, loadPrefs, PREFS_KEY, safeStorage, savePrefs, type KV } from "../src/prefs";
+import { defaultPrefs, loadPrefs, loadTheme, PREFS_KEY, safeStorage, savePrefs, type KV } from "../src/prefs";
 import { onePass, resolveRange } from "../src/sequence";
 import { fsFetch } from "./helpers";
 
@@ -20,7 +20,19 @@ describe("preferences", async () => {
       range: { book_id: "john", start: { chapter: 1, verse: 1 }, end: { chapter: 1, verse: 51 } },
       henry: false,
       speed: "medium",
+      theme: "light",
     });
+  });
+
+  it("theme defaults to light, corrupt → light, toggle persists", () => {
+    expect(defaultPrefs(meta).theme).toBe("light");
+    expect(loadTheme(mem())).toBe("light");
+    expect(loadTheme(mem({ [PREFS_KEY]: "{bad" }))).toBe("light");
+    expect(loadPrefs(mem({ [PREFS_KEY]: JSON.stringify({ theme: "neon" }) }), meta).theme).toBe("light");
+    const st = mem();
+    savePrefs(st, { ...defaultPrefs(meta), theme: "dark" });
+    expect(loadPrefs(st, meta).theme).toBe("dark");
+    expect(loadTheme(st)).toBe("dark");
   });
 
   it("corrupt localStorage JSON falls back to defaults", () => {
