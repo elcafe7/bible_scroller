@@ -292,3 +292,7 @@ kbd {
 body.size-s { --verse-size: clamp(1.05rem, 0.8rem + 1.1vw, 1.7rem); }
 body.size-l { --verse-size: clamp(1.6rem, 1.15rem + 2vw, 2.7rem); }
 body.size-xl { --verse-size: clamp(2rem, 1.4rem + 2.6vw, 3.4rem); }
+
+/* Ticker-only XL: large ambient read-from-across-the-room size (vertical XL unchanged). */
+body.mode-horizontal.size-xl .item { font-size: clamp(2.6rem, 1.2rem + 5.2vw, 5.75rem); }
+body.mode-horizontal.size-xl .henry { font-size: clamp(2.2rem, 1rem + 4.4vw, 4.9rem); }
