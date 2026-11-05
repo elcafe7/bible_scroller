@@ -2,9 +2,10 @@ import * as fullscreen from "./fullscreen";
 import { createLoader, DataError } from "./loader";
 import { loadPrefs, loadTheme, savePrefs, safeStorage } from "./prefs";
 import { groupBooks, startToEnd } from "./prefs";
+import { setCommentaryName } from "./scroller";
 import { Scroller } from "./scroller";
 import { LoopCursor, resolveRange } from "./sequence";
-import type { GenevaBook, GenevaMeta, HenryBook, Prefs, ScrollMode, Speed, Theme } from "./types";
+import type { Commentary, FontSize, GenevaBook, GenevaMeta, HenryBook, Prefs, ScrollMode, Speed, Theme } from "./types";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const body = document.body;
@@ -15,8 +16,10 @@ const bookSel = $<HTMLSelectElement>("book");
 const sch = $<HTMLSelectElement>("sch");
 const sv = $<HTMLSelectElement>("sv");
 const henryNa = $<HTMLElement>("henry-na");
-let henryBooks: Set<string> | null = null;
-const henryBox = $<HTMLInputElement>("henry");
+const commentaryAvail = new Map<Commentary, Set<string>>();
+const commentaryBtns = [...document.querySelectorAll<HTMLButtonElement>("[data-commentary]")];
+const sizeBtns = [...document.querySelectorAll<HTMLButtonElement>("[data-size]")];
+const COMMENTARY_NAME: Record<Commentary, string> = { none: "", henry: "Matthew Henry", calvin: "Calvin" };
 const playBtn = $<HTMLButtonElement>("play");
 const restartBtn = $<HTMLButtonElement>("restart");
 const notice = $<HTMLElement>("notice");
@@ -99,7 +102,25 @@ function syncPicker() {
   updateHenryNa();
 }
 function updateHenryNa() {
-  henryNa.hidden = !henryBooks || henryBooks.has(bookSel.value);
+  const c = prefs?.commentary ?? "none";
+  const avail = commentaryAvail.get(c);
+  const na = c !== "none" && !!avail && !avail.has(bookSel.value);
+  henryNa.textContent = na ? `${COMMENTARY_NAME[c]} isn\u2019t available for this book.` : "";
+  henryNa.hidden = !na;
+}
+function setCommentary(c: Commentary) {
+  for (const b of commentaryBtns) b.setAttribute("aria-checked", String(b.dataset.commentary === c));
+  setCommentaryName(COMMENTARY_NAME[c] || "Commentary");
+  if (prefs) { prefs.commentary = c; persist(); }
+  updateHenryNa();
+  if (c !== "none") void ensureHenry();
+}
+function setSize(z: FontSize) {
+  for (const b of sizeBtns) b.setAttribute("aria-checked", String(b.dataset.size === z));
+  document.body.classList.remove("size-s", "size-m", "size-l", "size-xl");
+  document.body.classList.add(`size-${z}`);
+  if (prefs) { prefs.fontSize = z; persist(); }
+  if (prefs) scroller?.setSpeed(prefs.speed);
 }
 function setPicker(r: Prefs["range"]) {
   bookSel.value = r.book_id;
@@ -161,11 +182,14 @@ function setMode(m: ScrollMode) {
 
 // ---------- loading + playback ----------
 async function getHenry(bookId: string): Promise<HenryBook | null> {
-  if (!henryCache.has(bookId)) henryCache.set(bookId, await loader.loadHenryBook(bookId));
-  return henryCache.get(bookId)!;
+  const c = prefs.commentary;
+  if (c === "none") return null;
+  const k = `${c}:${bookId}`;
+  if (!henryCache.has(k)) henryCache.set(k, await loader.loadCommentaryBook(c, bookId));
+  return henryCache.get(k)!;
 }
 async function ensureHenry() {
-  if (!cursor || !prefs.henry) return;
+  if (!cursor || prefs.commentary === "none") return;
   const h = await getHenry(prefs.range.book_id);
   cursor.setHenryBook(h);
   if (!h && !henryNoticeShown) {
@@ -189,11 +213,11 @@ async function applyRange(force = false): Promise<boolean> {
     clearError();
     prefs.range = r;
     persist();
-    cursor = new LoopCursor(verses, prefs.henry ? await getHenry(r.book_id) : null);
+    cursor = new LoopCursor(verses, prefs.commentary !== "none" ? await getHenry(r.book_id) : null);
     appliedKey = key;
     henryNoticeShown = false;
     await ensureHenry();
-    const src = { next: () => cursor!.next(prefs.henry) };
+    const src = { next: () => cursor!.next(prefs.commentary !== "none") };
     if (!scroller) scroller = new Scroller(stage, track, src, prefs.speed, prefs.mode);
     else {
       scroller.pause();
@@ -264,11 +288,8 @@ function wire() {
 
   bookSel.addEventListener("change", () => { setPicker(startToEnd(meta!, bookSel.value, { chapter: 1, verse: 1 })); updatePlayLabel(); });
   for (const s of [sch, sv]) s.addEventListener("change", () => { syncPicker(); updatePlayLabel(); });
-  henryBox.addEventListener("change", () => {
-    prefs.henry = henryBox.checked;
-    persist();
-    if (prefs.henry) void ensureHenry();
-  });
+  for (const b of commentaryBtns) b.addEventListener("click", () => { henryNoticeShown = false; setCommentary(b.dataset.commentary as Commentary); });
+  for (const b of sizeBtns) b.addEventListener("click", () => setSize(b.dataset.size as FontSize));
   for (const b of speedBtns) b.addEventListener("click", () => setSpeed(b.dataset.speed as Speed));
   for (const b of themeBtns) b.addEventListener("click", () => setTheme(b.dataset.themeChoice as Theme));
   for (const b of modeBtns) b.addEventListener("click", () => setMode(b.dataset.mode as ScrollMode));
@@ -345,13 +366,16 @@ async function boot() {
     g.append(...bs.map((b) => new Option(b.book, b.book_id)));
     return g;
   }));
-  void loader.loadHenryMeta().then((hm) => {
-    henryBooks = hm ? new Set(hm.books.map((b) => b.book_id)) : new Set();
-    updateHenryNa();
-  });
+  for (const c of ["henry", "calvin"] as const) {
+    void loader.loadCommentaryMeta(c).then((m) => {
+      commentaryAvail.set(c, new Set(m?.books.map((b) => b.book_id) ?? []));
+      updateHenryNa();
+    });
+  }
   prefs = loadPrefs(storage, meta);
   setPicker(prefs.range);
-  henryBox.checked = prefs.henry;
+  setCommentary(prefs.commentary);
+  setSize(prefs.fontSize);
   setSpeed(prefs.speed);
   applyTheme(prefs.theme);
   applyModeUi(prefs.mode);

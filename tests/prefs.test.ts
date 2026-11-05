@@ -18,7 +18,8 @@ describe("preferences", async () => {
   it("first-run defaults: John 1, Henry off, medium", () => {
     expect(loadPrefs(mem(), meta)).toEqual({
       range: { book_id: "john", start: { chapter: 1, verse: 1 }, end: { chapter: 1, verse: 51 } },
-      henry: false,
+      commentary: "none",
+      fontSize: "m",
       speed: "medium",
       theme: "light",
       mode: "vertical",
@@ -53,12 +54,12 @@ describe("preferences", async () => {
     const s = mem({ [PREFS_KEY]: JSON.stringify({ range: { book_id: "genesis" }, henry: "yes", speed: "ludicrous" }) });
     expect(loadPrefs(s, meta)).toEqual(defaultPrefs(meta));
     const ok = mem({ [PREFS_KEY]: JSON.stringify({ range: { book_id: "john", start: { chapter: 1, verse: 3 }, end: { chapter: 1, verse: 9 } }, henry: true, speed: "slow" }) });
-    expect(loadPrefs(ok, meta)).toMatchObject({ henry: true, speed: "slow", range: { start: { verse: 3 }, end: startToEnd(meta, "john", { chapter: 1, verse: 3 }).end } });
+    expect(loadPrefs(ok, meta)).toMatchObject({ commentary: "henry", speed: "slow", range: { start: { verse: 3 }, end: startToEnd(meta, "john", { chapter: 1, verse: 3 }).end } });
   });
 
   it("round-trips and survives a throwing store", () => {
     const s = mem();
-    const p = { ...defaultPrefs(meta), henry: true, speed: "fast" as const };
+    const p = { ...defaultPrefs(meta), commentary: "calvin" as const, speed: "fast" as const };
     savePrefs(s, p);
     expect(loadPrefs(s, meta)).toEqual(p);
     const broken: KV = { getItem: () => { throw new Error("SecurityError"); }, setItem: () => { throw new Error("QuotaExceeded"); } };
@@ -100,5 +101,15 @@ describe("missing Henry file", () => {
     expect(groupBooks([b("john", 43), b("gen", 1)]).map(([l, bs]) => [l, bs.map((x) => x.book_id)]))
       .toEqual([["Old Testament", ["gen"]], ["New Testament", ["john"]]]);
     expect(groupBooks([b("tobit", 67), b("gen", 1)]).map(([l]) => l)).toEqual(["Old Testament", "Apocrypha"]);
+  });
+
+  it("commentary + font size: legacy henry migrates, invalid falls back, round-trips", async () => {
+    const meta = await loader.loadGenevaMeta();
+    expect(loadPrefs(mem({ [PREFS_KEY]: JSON.stringify({ henry: true }) }), meta).commentary).toBe("henry");
+    expect(loadPrefs(mem({ [PREFS_KEY]: JSON.stringify({ henry: false }) }), meta).commentary).toBe("none");
+    expect(loadPrefs(mem({ [PREFS_KEY]: JSON.stringify({ commentary: "barth", fontSize: "huge" }) }), meta)).toMatchObject({ commentary: "none", fontSize: "m" });
+    const st = mem();
+    savePrefs(st, { ...defaultPrefs(meta), commentary: "calvin", fontSize: "xl" });
+    expect(loadPrefs(st, meta)).toMatchObject({ commentary: "calvin", fontSize: "xl" });
   });
 });

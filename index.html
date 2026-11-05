@@ -38,18 +38,25 @@
       </fieldset>
 
       <div class="options">
-        <label class="toggle henry-opt">
-          <input type="checkbox" id="henry" />
-          <span class="toggle-copy">
-            <span class="toggle-title">Matthew Henry between verses</span>
-            <span class="toggle-hint">Commentary comes in chunks (often several verses), not after every verse.</span>
-            <span class="toggle-hint henry-na" id="henry-na" hidden>Matthew Henry isn’t available for this book.</span>
-          </span>
-        </label>
+        <div class="commentary-opt">
+          <div class="commentary" role="radiogroup" aria-label="Commentary">
+            <button type="button" role="radio" data-commentary="none">No commentary</button>
+            <button type="button" role="radio" data-commentary="henry">Matthew Henry</button>
+            <button type="button" role="radio" data-commentary="calvin">Calvin</button>
+          </div>
+          <p class="toggle-hint">Commentary comes in chunks (often several verses), not after every verse.</p>
+          <p class="toggle-hint henry-na" id="henry-na" hidden></p>
+        </div>
         <div class="speed" role="radiogroup" aria-label="Speed">
           <button type="button" role="radio" data-speed="slow">Slow</button>
           <button type="button" role="radio" data-speed="medium">Medium</button>
           <button type="button" role="radio" data-speed="fast">Fast</button>
+        </div>
+        <div class="size" role="radiogroup" aria-label="Text size">
+          <button type="button" role="radio" data-size="s" aria-label="Small text">A</button>
+          <button type="button" role="radio" data-size="m" aria-label="Medium text">A</button>
+          <button type="button" role="radio" data-size="l" aria-label="Large text">A</button>
+          <button type="button" role="radio" data-size="xl" aria-label="Extra large text">A</button>
         </div>
         <div class="theme" role="radiogroup" aria-label="Theme">
           <button type="button" role="radio" data-theme-choice="light">Light</button>

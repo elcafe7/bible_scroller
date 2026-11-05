@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createLoader, DataError } from "../src/loader";
+import { stripRequote, createLoader, DataError } from "../src/loader";
 import { henryForVerse, LoopCursor, onePass, resolveRange } from "../src/sequence";
 import { fsFetch } from "./helpers";
 
@@ -107,5 +107,13 @@ describe.skipIf(!existsSync(resolve(DATA, "geneva/meta.json")))("full data/ buil
     const john = await full.loadGenevaBook("john");
     expect(resolveRange(meta, john, { book_id: "john" }).length).toBeGreaterThan(800);
     expect((await full.loadHenryBook("john"))?.sections.some((s) => s.verse_start)).toBe(true);
+  });
+});
+
+describe("stripRequote", () => {
+  it("drops Henry's leading superscript-verse requote, keeps the comment", () => {
+    expect(stripRequote("¹ In the beginning was the Word. \n² The same was in the beginning. \n\nAugustine said...")).toBe("Augustine said...");
+    expect(stripRequote("¹⁰ Making request. \n\nComment.")).toBe("Comment.");
+    expect(stripRequote("1. In the beginning. Calvin lemma stays.")).toBe("1. In the beginning. Calvin lemma stays.");
   });
 });

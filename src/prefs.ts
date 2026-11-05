@@ -1,9 +1,11 @@
-import type { GenevaMeta, GenevaMetaBook, Prefs, VersePoint, ScrollMode, Speed, Theme } from "./types";
+import type { Commentary, FontSize, GenevaMeta, GenevaMetaBook, Prefs, VersePoint, ScrollMode, Speed, Theme } from "./types";
 
 export const PREFS_KEY = "bible_scroller.v1";
 const SPEEDS: Speed[] = ["slow", "medium", "fast"];
 const THEMES: Theme[] = ["light", "dark"];
 const MODES: ScrollMode[] = ["vertical", "horizontal"];
+const COMMENTARIES: Commentary[] = ["none", "henry", "calvin"];
+const FONT_SIZES: FontSize[] = ["s", "m", "l", "xl"];
 
 /** Theme only, readable before meta loads so the page paints in the right palette. */
 export function loadTheme(storage: KV): Theme {
@@ -57,7 +59,8 @@ export function defaultPrefs(meta: GenevaMeta): Prefs {
   const mb = meta.books.find((b) => b.book_id === "john") ?? [...meta.books].sort((a, b) => a.order - b.order)[0];
   return {
     range: startToEnd(meta, mb.book_id, { chapter: 1, verse: 1 }),
-    henry: false,
+    commentary: "none",
+    fontSize: "m",
     speed: "medium",
     theme: "light",
     mode: "vertical",
@@ -90,7 +93,10 @@ export function loadPrefs(storage: KV, meta: GenevaMeta): Prefs {
   const p = raw as Partial<Prefs>;
   return {
     range: migrateRange(meta, p.range) ?? d.range,
-    henry: typeof p.henry === "boolean" ? p.henry : d.henry,
+    // Legacy { henry: boolean } migrates to commentary "henry" / "none".
+    commentary: COMMENTARIES.includes(p.commentary as Commentary) ? (p.commentary as Commentary)
+      : typeof (p as { henry?: unknown }).henry === "boolean" ? ((p as { henry: boolean }).henry ? "henry" : "none") : d.commentary,
+    fontSize: FONT_SIZES.includes(p.fontSize as FontSize) ? (p.fontSize as FontSize) : d.fontSize,
     speed: SPEEDS.includes(p.speed as Speed) ? (p.speed as Speed) : d.speed,
     theme: THEMES.includes(p.theme as Theme) ? (p.theme as Theme) : d.theme,
     mode: MODES.includes(p.mode as ScrollMode) ? (p.mode as ScrollMode) : d.mode,

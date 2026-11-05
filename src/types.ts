@@ -76,9 +76,12 @@ export type LoopItem =
 export type Speed = "slow" | "medium" | "fast";
 export type Theme = "light" | "dark";
 export type ScrollMode = "vertical" | "horizontal";
+export type Commentary = "none" | "henry" | "calvin";
+export type FontSize = "s" | "m" | "l" | "xl";
 export interface Prefs {
   range: { book_id: string; start: VersePoint; end: VersePoint };
-  henry: boolean;
+  commentary: Commentary;
+  fontSize: FontSize;
   speed: Speed;
   theme: Theme;
   mode: ScrollMode;

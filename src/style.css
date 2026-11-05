@@ -174,9 +174,9 @@ select {
 .toggle-copy { display: grid; gap: 0.2rem; padding-top: 0.15rem; }
 .toggle-title { line-height: 1.25; }
 .toggle-hint { font-size: 0.78rem; line-height: 1.35; color: var(--ink-quiet); font-weight: 400; }
-.speed, .theme, .mode { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 3px; }
-.speed button, .theme button, .mode button { min-height: 38px; padding: 0 0.85rem; border: 0; border-radius: 999px; background: none; color: var(--ink-soft); cursor: pointer; }
-.speed button[aria-checked="true"], .theme button[aria-checked="true"], .mode button[aria-checked="true"] { background: var(--surface-hover); color: var(--ink); }
+.speed, .theme, .mode, .size, .commentary { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 3px; }
+.speed button, .theme button, .mode button, .size button, .commentary button { min-height: 38px; padding: 0 0.85rem; border: 0; border-radius: 999px; background: none; color: var(--ink-soft); cursor: pointer; }
+.speed button[aria-checked="true"], .theme button[aria-checked="true"], .mode button[aria-checked="true"], .size button[aria-checked="true"], .commentary button[aria-checked="true"] { background: var(--surface-hover); color: var(--ink); }
 .actions { display: flex; gap: 0.6rem; }
 .actions button { min-height: 46px; padding: 0 1.2rem; border-radius: 10px; border: 1px solid var(--rule); background: var(--field-bg); cursor: pointer; }
 .actions .primary { flex: 1; background: var(--ink); color: var(--bg); border-color: var(--ink); font-weight: 600; }
@@ -206,3 +206,16 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 @media (prefers-reduced-motion: reduce) {
   .notice { transition: none; }
 }
+
+/* commentary choice + text size */
+.commentary-opt { width: 100%; display: grid; justify-items: center; gap: 0.35rem; text-align: center; }
+.commentary-opt .toggle-hint { margin: 0; }
+.commentary { flex-wrap: wrap; justify-content: center; }
+.size button { font-family: var(--serif); padding: 0 0.7rem; }
+.size button[data-size="s"] { font-size: 0.8rem; }
+.size button[data-size="m"] { font-size: 1rem; }
+.size button[data-size="l"] { font-size: 1.2rem; }
+.size button[data-size="xl"] { font-size: 1.4rem; }
+body.size-s { --verse-size: clamp(1.05rem, 0.8rem + 1.1vw, 1.7rem); }
+body.size-l { --verse-size: clamp(1.6rem, 1.15rem + 2vw, 2.7rem); }
+body.size-xl { --verse-size: clamp(2rem, 1.4rem + 2.6vw, 3.4rem); }

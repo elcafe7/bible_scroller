@@ -1,5 +1,8 @@
 import type { LoopItem, ScrollMode, Speed } from "./types";
 
+let commentaryName = "Matthew Henry";
+export function setCommentaryName(n: string) { commentaryName = n; }
+
 /** Vertical reading pace in CSS lines per minute. Tuned so Fast feels brisk continuous reading (not a crawl); still far slower than a stock ticker. */
 export const SPEED_LPM: Record<Speed, number> = { slow: 48, medium: 80, fast: 130 };
 
@@ -34,9 +37,9 @@ export function renderItem(item: LoopItem, mode: ScrollMode = "vertical"): HTMLE
     return n;
   }
   const n = el("aside", "item henry");
-  n.setAttribute("aria-label", "Matthew Henry");
+  n.setAttribute("aria-label", commentaryName);
   const span = item.verse_start === item.verse_end ? `${item.verse_start}` : `${item.verse_start}–${item.verse_end}`;
-  const ref = el("span", "ref", `Matthew Henry · ${item.book} ${item.chapter}:${span}`);
+  const ref = el("span", "ref", `${commentaryName} · ${item.book} ${item.chapter}:${span}`);
   if (item.section_title) ref.append(" ", el("span", "title", item.section_title));
   n.append(ref);
   for (const para of item.text.split(/\n\s*\n/)) {
@@ -57,9 +60,9 @@ function renderHorizontalItem(item: LoopItem): HTMLElement {
     return n;
   }
   const n = el("aside", "item henry");
-  n.setAttribute("aria-label", "Matthew Henry");
+  n.setAttribute("aria-label", commentaryName);
   const span = item.verse_start === item.verse_end ? `${item.verse_start}` : `${item.verse_start}–${item.verse_end}`;
-  let label = `Matthew Henry · ${item.book} ${item.chapter}:${span}`;
+  let label = `${commentaryName} · ${item.book} ${item.chapter}:${span}`;
   if (item.section_title) label += ` — ${item.section_title}`;
   n.append(
     el("span", "ref", label),

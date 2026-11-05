@@ -381,3 +381,11 @@ None locked as blockers. Defer to Nate only if needed later:
 
 1. Exact typeface (system stack vs bundled webfont in the zip).
 2. Whether Protestant 66 excludes Geneva apocrypha rows present in gen.db (spec default: **exclude** apocrypha in v1).
+
+## Update 2026-11-05: "Scroll" settings
+- App name **Scroll**. Settings page is a centered Word/Verse-style load card.
+- Passage is **start-only** (book + chapter:verse). Loop runs from start to end of that book, then repeats. Stored `range.end` is recomputed to end-of-book on load.
+- Book menu uses `<optgroup>` Old Testament (order 1–39) / New Testament (40–66) / Apocrypha (anything else; empty groups hidden).
+- Commentary: No commentary / Matthew Henry / Calvin (`data/calvin/**`, built by `scripts/build-calvin.mjs` from Lex `john_calvin.db`). Legacy `henry: boolean` migrates. A note shows when the chosen commentary has no data for the selected book (e.g. Henry: Psalms; Calvin: Judges–Song, 2–3 John, Revelation; any Apocrypha).
+- Leading Scripture requote (superscript-numbered verse lines) is stripped from commentary text at load.
+- Text size S / M / L / XL (`fontSize` pref) scales the stage `--verse-size`.

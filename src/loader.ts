@@ -65,7 +65,33 @@ export function createLoader(opts: LoaderOptions = {}) {
     return j && Array.isArray(j.sections) ? j : null;
   }
 
-  return { loadGenevaMeta, loadGenevaBook, loadHenryMeta, loadHenryBook };
+  /** Commentary source dir: "henry" | "calvin"; both share the HenryMeta/HenryBook JSON shape. */
+  async function loadCommentaryMeta(dir: string): Promise<HenryMeta | null> {
+    if (!SAFE_ID.test(dir)) return null;
+    const j = (await getJson(`${dir}/meta.json`)) as HenryMeta | undefined;
+    return j && Array.isArray(j.books) ? j : null;
+  }
+  async function loadCommentaryBook(dir: string, bookId: string): Promise<HenryBook | null> {
+    if (!SAFE_ID.test(dir) || !SAFE_ID.test(bookId)) return null;
+    const j = (await getJson(`${dir}/${bookId}.json`)) as HenryBook | undefined;
+    if (!j || !Array.isArray(j.sections)) return null;
+    const sections = j.sections.map((s) => ({ ...s, text: stripRequote(s.text) })).filter((s) => s.text);
+    return { ...j, sections };
+  }
+
+  return { loadGenevaMeta, loadGenevaBook, loadHenryMeta, loadHenryBook, loadCommentaryMeta, loadCommentaryBook };
 }
 
 export type Loader = ReturnType<typeof createLoader>;
+
+/**
+ * Drop the leading Scripture requote a commentary section opens with (Henry quotes the whole
+ * passage as "¹ In the beginning… \n² The same…" before commenting). Only leading lines that
+ * start with a superscript verse number are removed; the comment itself is kept.
+ */
+export function stripRequote(text: string): string {
+  const lines = text.split("\n");
+  let i = 0;
+  while (i < lines.length && (/^\s*[\u2070\u00b9\u00b2\u00b3\u2074-\u2079]+\s/.test(lines[i]) || (i > 0 && !lines[i].trim()))) i++;
+  return lines.slice(i).join("\n").trim();
+}
