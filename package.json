@@ -7,10 +7,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build-data": "node --no-warnings scripts/build-data.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
     "vite": "^8.3.6"
+  },
+  "engines": {
+    "node": ">=22.13"
   }
 }

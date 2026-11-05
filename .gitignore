@@ -36,3 +36,8 @@ yarn-error.log*
 .cache/
 tmp/
 temp/
+
+# Generated full-canon JSON (rebuild with npm run build-data)
+data/
+*.db
+*.zip

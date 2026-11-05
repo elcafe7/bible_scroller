@@ -1,0 +1,26 @@
+// Protestant 66 canon: Lex gen.db abbreviation -> stable book_id + canonical English name.
+// The Henry DB uses the canonical name (except "Song of Solomon", mapped via henryName).
+export const BOOKS = [
+  ["Gen", "genesis", "Genesis"], ["Exod", "exodus", "Exodus"], ["Lev", "leviticus", "Leviticus"],
+  ["Num", "numbers", "Numbers"], ["Deut", "deuteronomy", "Deuteronomy"], ["Josh", "joshua", "Joshua"],
+  ["Judg", "judges", "Judges"], ["Ruth", "ruth", "Ruth"], ["1Sam", "1samuel", "1 Samuel"],
+  ["2Sam", "2samuel", "2 Samuel"], ["1Kgs", "1kings", "1 Kings"], ["2Kgs", "2kings", "2 Kings"],
+  ["1Chr", "1chronicles", "1 Chronicles"], ["2Chr", "2chronicles", "2 Chronicles"], ["Ezra", "ezra", "Ezra"],
+  ["Neh", "nehemiah", "Nehemiah"], ["Esth", "esther", "Esther"], ["Job", "job", "Job"],
+  ["Ps", "psalms", "Psalms"], ["Prov", "proverbs", "Proverbs"], ["Eccl", "ecclesiastes", "Ecclesiastes"],
+  ["Song", "song", "Song of Solomon"], ["Isa", "isaiah", "Isaiah"], ["Jer", "jeremiah", "Jeremiah"],
+  ["Lam", "lamentations", "Lamentations"], ["Ezek", "ezekiel", "Ezekiel"], ["Dan", "daniel", "Daniel"],
+  ["Hos", "hosea", "Hosea"], ["Joel", "joel", "Joel"], ["Amos", "amos", "Amos"],
+  ["Obad", "obadiah", "Obadiah"], ["Jonah", "jonah", "Jonah"], ["Mic", "micah", "Micah"],
+  ["Nah", "nahum", "Nahum"], ["Hab", "habakkuk", "Habakkuk"], ["Zeph", "zephaniah", "Zephaniah"],
+  ["Hag", "haggai", "Haggai"], ["Zech", "zechariah", "Zechariah"], ["Mal", "malachi", "Malachi"],
+  ["Matt", "matthew", "Matthew"], ["Mark", "mark", "Mark"], ["Luke", "luke", "Luke"],
+  ["John", "john", "John"], ["Acts", "acts", "Acts"], ["Rom", "romans", "Romans"],
+  ["1Cor", "1corinthians", "1 Corinthians"], ["2Cor", "2corinthians", "2 Corinthians"], ["Gal", "galatians", "Galatians"],
+  ["Eph", "ephesians", "Ephesians"], ["Phil", "philippians", "Philippians"], ["Col", "colossians", "Colossians"],
+  ["1Thess", "1thessalonians", "1 Thessalonians"], ["2Thess", "2thessalonians", "2 Thessalonians"], ["1Tim", "1timothy", "1 Timothy"],
+  ["2Tim", "2timothy", "2 Timothy"], ["Titus", "titus", "Titus"], ["Phlm", "philemon", "Philemon"],
+  ["Heb", "hebrews", "Hebrews"], ["Jas", "james", "James"], ["1Pet", "1peter", "1 Peter"],
+  ["2Pet", "2peter", "2 Peter"], ["1John", "1john", "1 John"], ["2John", "2john", "2 John"],
+  ["3John", "3john", "3 John"], ["Jude", "jude", "Jude"], ["Rev", "revelation", "Revelation"],
+].map(([abbr, book_id, book], i) => ({ abbr, book_id, book, order: i + 1 }));
