@@ -2,11 +2,69 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#12100e" />
     <title>Bible scroller</title>
+    <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
-    <div id="app"><h1>Bible scroller</h1></div>
+    <main id="stage" aria-label="Scrolling passage">
+      <div id="track"></div>
+    </main>
+
+    <div id="error" class="error" role="alert" hidden>
+      <p class="error-msg"></p>
+      <p class="error-help"></p>
+    </div>
+
+    <section id="chrome" class="chrome" aria-label="Scroller controls">
+      <header class="chrome-head">
+        <h1>Bible scroller</h1>
+        <p class="edition">Geneva Bible (1599)</p>
+      </header>
+
+      <fieldset class="range">
+        <legend>Passage</legend>
+        <label class="field book-field">
+          <span>Book</span>
+          <select id="book"></select>
+        </label>
+        <div class="span">
+          <label class="field"><span>From</span>
+            <span class="cv"><select id="sch" aria-label="Start chapter"></select><b>:</b><select id="sv" aria-label="Start verse"></select></span>
+          </label>
+          <label class="field"><span>To</span>
+            <span class="cv"><select id="ech" aria-label="End chapter"></select><b>:</b><select id="ev" aria-label="End verse"></select></span>
+          </label>
+        </div>
+        <div class="quick">
+          <button type="button" id="chapter-only" class="link">This chapter</button>
+          <button type="button" id="whole-book" class="link">Whole book</button>
+        </div>
+      </fieldset>
+
+      <div class="options">
+        <label class="toggle">
+          <input type="checkbox" id="henry" />
+          <span>Matthew Henry between verses</span>
+        </label>
+        <div class="speed" role="radiogroup" aria-label="Speed">
+          <button type="button" role="radio" data-speed="slow">Slow</button>
+          <button type="button" role="radio" data-speed="medium">Medium</button>
+          <button type="button" role="radio" data-speed="fast">Fast</button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="play" class="primary">Start</button>
+        <button type="button" id="restart">Restart</button>
+      </div>
+    </section>
+
+    <p id="notice" class="notice" role="status" aria-live="polite"></p>
+    <p id="boot" class="boot">Loading…</p>
+
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>
