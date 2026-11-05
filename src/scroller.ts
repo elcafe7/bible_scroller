@@ -1,7 +1,7 @@
 import type { LoopItem, ScrollMode, Speed } from "./types";
 
-/** Reading pace in lines per minute (≈150 / 200 / 270 wpm at ~10 words a line). Far slower than a stock ticker. */
-export const SPEED_LPM: Record<Speed, number> = { slow: 15, medium: 20, fast: 27 };
+/** Vertical reading pace in CSS lines per minute. Tuned so Fast feels brisk continuous reading (not a crawl); still far slower than a stock ticker. */
+export const SPEED_LPM: Record<Speed, number> = { slow: 48, medium: 80, fast: 130 };
 
 /** Horizontal ticker: characters per minute at reading pace (not flash-ticker speeds). */
 export const SPEED_CPM: Record<Speed, number> = { slow: 900, medium: 1200, fast: 1620 };
