@@ -59,7 +59,7 @@ The zip unpacks to one `bible_scroller/` folder with `index.html`, `assets/`, `d
 ## Using the scroller
 
 - **Passage:** choose a book, then From / To chapter:verse. "This chapter" and "Whole book" are shortcuts. The range loops. First run starts on John 1.
-- **Start / Pause / Resume:** Start hides the controls after a moment. Pause freezes the passage and opens the controls; Resume continues from the same spot and returns to the scroll view. Space toggles pause/resume. Escape (or a tap on the passage while paused) dismisses the controls so you can see the frozen text. Restart goes back to the start of the range.
+- **Settings vs scroll:** Settings is a normal page (not an overlay). **Start** / **Resume** opens a full-screen scroll (Fullscreen API when the browser allows it, otherwise a CSS full-viewport fallback). **Esc**, **Space**, or a **double-tap** on the passage returns to settings and freezes the place so Resume can continue. **Restart** resets to the start of the range and enters scroll again.
 - **Mode:** Vertical (default) is the full-screen ambient column. Ticker is a one-line horizontal marquee — one verse (or Henry block) at a time, looping the chosen range.
 - **Speed:** Slow, Medium (default), Fast. All are reading-paced (about 15, 20, and 27 lines a minute vertically; similar reading pace horizontally), far slower than a stock ticker.
 - **Henry toggle:** "Matthew Henry between verses" is off by default. When on, Henry's note follows the last verse it covers in your range (each section shows once per loop), then the next verse continues. Verses with no Henry section just continue. If a book has no Henry file (Henry has no Psalms in the Lex data), a one-time "Commentary data not available." notice shows and verses keep scrolling.

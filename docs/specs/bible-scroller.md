@@ -185,8 +185,9 @@ Lex `gen.db` `bible.reference` form: `gen:<BookAbbr>:<chapter>:<verse>` with `te
 | Toggle Henry | boolean | Immediate; next item in loop respects new mode |
 | Change speed | enum `slow` \| `medium` \| `fast` | Updates pixels/sec (or equivalent); no reload |
 | Change mode | enum `vertical` \| `horizontal` | Switches between full-screen vertical scroll and one-line horizontal ticker; rebuilds cleanly (restarts the strip for that mode) |
-| Tap / key | pointer or keyboard | Shows chrome if hidden; hide after idle timeout (~3s) when playing; while paused, Escape or a stage tap dismisses chrome to the frozen passage |
-| Pause / resume | control | Pause freezes motion (RAF halted) and shows chrome; Resume continues from the frozen position and returns to the scroll experience (chrome auto-hides again) |
+| Start / Resume | control | Leaves the settings page and enters fullscreen (or CSS full-viewport fallback); begins or continues scroll |
+| Esc / Space / double-tap while running | key or gesture | Stops scroll, exits fullscreen, returns to the settings page (position kept for Resume) |
+| Restart | control | Resets to the start of the range and enters fullscreen scroll |
 
 No network requests. No auth. Idempotent: re-applying the same range/speed/Henry flag does not duplicate DOM nodes or restart from zero unless the user hits Restart.
 

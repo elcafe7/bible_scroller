@@ -1,3 +1,4 @@
+import * as fullscreen from "./fullscreen";
 import { createLoader, DataError } from "./loader";
 import { loadPrefs, loadTheme, savePrefs, safeStorage } from "./prefs";
 import { Scroller } from "./scroller";
@@ -26,14 +27,18 @@ const modeBtns = [...document.querySelectorAll<HTMLButtonElement>(".mode button"
 const loader = createLoader();
 const storage = safeStorage();
 const IDLE_MS = 3000;
+const TAP_MS = 450;
+const TAP_DIST = 28;
 
 let meta: GenevaMeta | null = null;
 let prefs: Prefs;
 let cursor: LoopCursor | null = null;
 let scroller: Scroller | null = null;
-let appliedKey = "";        // range currently loaded into the cursor
+let appliedKey = "";
 let henryNoticeShown = false;
+let running = false;
 let idleTimer = 0;
+let firstTap: { t: number; x: number; y: number } | null = null;
 const bookCache = new Map<string, GenevaBook>();
 const henryCache = new Map<string, HenryBook | null>();
 
@@ -43,8 +48,7 @@ function showError(msg: string, help = "") {
   errorBox.querySelector(".error-help")!.textContent = help;
   errorBox.hidden = false;
   body.classList.add("has-error");
-  stop({ keepChrome: true });
-  revealChrome();
+  stop();
 }
 function clearError() {
   errorBox.hidden = true;
@@ -58,33 +62,25 @@ function showNotice(msg: string) {
   noticeTimer = window.setTimeout(() => notice.classList.remove("show"), 5000);
 }
 
-// ---------- chrome visibility ----------
-/** Show chrome without starting an idle-hide timer (used by pause). */
-function revealChrome() {
+// ---------- surfaces (settings page vs fullscreen stage) ----------
+function showSettings() {
+  body.classList.add("state-stopped");
+  body.classList.remove("state-running", "idle", "is-fullviewport");
+  stage.hidden = true;
+  chrome.hidden = false;
+}
+function showStage() {
+  body.classList.add("state-running");
+  body.classList.remove("state-stopped");
+  stage.hidden = false;
+  chrome.hidden = true;
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+}
+
+function armIdle() {
   clearTimeout(idleTimer);
-  body.classList.remove("chrome-hidden");
-}
-function showChrome() {
-  revealChrome();
-  scheduleHide();
-}
-/**
- * Hide chrome while playing OR paused (frozen passage visible).
- * Never hide during an error screen.
- */
-function hideChrome() {
-  if (!errorBox.hidden) return;
-  if (scroller?.playing || body.classList.contains("paused")) {
-    body.classList.add("chrome-hidden");
-  }
-}
-function scheduleHide() {
-  clearTimeout(idleTimer);
-  if (scroller?.playing) idleTimer = window.setTimeout(hideChrome, IDLE_MS);
-}
-function hideChromeSoon() {
-  clearTimeout(idleTimer);
-  idleTimer = window.setTimeout(hideChrome, 900);
+  body.classList.remove("idle");
+  if (running) idleTimer = window.setTimeout(() => { if (running) body.classList.add("idle"); }, IDLE_MS);
 }
 
 // ---------- range picker ----------
@@ -126,7 +122,8 @@ function wholeChapter(ch: number) {
 }
 function updatePlayLabel() {
   const dirty = rangeKey(pickerRange()) !== appliedKey;
-  playBtn.textContent = !scroller || dirty ? "Start" : scroller.playing ? "Pause" : "Resume";
+  // Resume = same range already loaded (stopped mid-scroll); Start = fresh or dirty.
+  playBtn.textContent = !scroller || dirty ? "Start" : "Resume";
 }
 
 // ---------- prefs ----------
@@ -162,16 +159,12 @@ function setMode(m: ScrollMode) {
   applyModeUi(m);
   persist();
   if (!scroller) return;
-  const wasPlaying = scroller.playing;
+  const wasRunning = running;
   scroller.setMode(m);
   if (cursor) cursor.restart();
   scroller.reset();
-  if (wasPlaying) {
-    start();
-    hideChromeSoon();
-  } else {
-    updatePlayLabel();
-  }
+  if (wasRunning) scroller.play();
+  else updatePlayLabel();
 }
 
 // ---------- loading + playback ----------
@@ -189,7 +182,6 @@ async function ensureHenry() {
   }
 }
 
-/** Load the picked range into a fresh cursor. No-op if the same range is already loaded. */
 async function applyRange(force = false): Promise<boolean> {
   const r = pickerRange();
   const key = rangeKey(r);
@@ -224,44 +216,60 @@ async function applyRange(force = false): Promise<boolean> {
   }
 }
 
-function stop(opts: { keepChrome?: boolean } = {}) {
-  scroller?.pause();
-  body.classList.remove("playing");
-  body.classList.add("paused");
-  clearTimeout(idleTimer);
-  if (!opts.keepChrome) revealChrome(); // pause opens settings; Escape / outside tap dismisses to frozen view
+/** Begin scroll on the fullscreen/full-viewport stage (scroller must already exist). */
+function beginRun() {
+  if (!scroller) return;
+  running = true;
+  showStage();
+  scroller.play();
   updatePlayLabel();
-  // Blur play so a following Space doesn't double-activate the focused button + document handler.
-  if (document.activeElement instanceof HTMLElement && chrome.contains(document.activeElement)) {
-    document.activeElement.blur();
-  }
+  armIdle();
 }
-function start() {
-  scroller!.play();
-  body.classList.add("playing");
-  body.classList.remove("paused");
+
+/** Leave scroll surface → settings page; freeze position for Resume. */
+function stop() {
+  running = false;
+  firstTap = null;
+  clearTimeout(idleTimer);
+  body.classList.remove("idle");
+  scroller?.pause();
+  fullscreen.exit();
+  showSettings();
   updatePlayLabel();
-  scheduleHide();
 }
 
 async function onPlay() {
-  const dirty = rangeKey(pickerRange()) !== appliedKey;
-  if (!scroller || dirty) {
-    if (!(await applyRange())) return;
-    start();
-    hideChromeSoon();
+  if (running) {
+    stop();
     return;
   }
-  if (scroller.playing) {
-    stop();
-  } else {
-    start();
-    hideChromeSoon(); // Resume returns to the scroll experience
+  // Fullscreen must start inside the user gesture — before any await.
+  void fullscreen.enter();
+  const dirty = rangeKey(pickerRange()) !== appliedKey;
+  if (!scroller || dirty) {
+    if (!(await applyRange())) {
+      fullscreen.exit();
+      showSettings();
+      return;
+    }
   }
+  beginRun();
+}
+
+async function onRestart() {
+  void fullscreen.enter();
+  if (!(await applyRange(true))) {
+    fullscreen.exit();
+    showSettings();
+    return;
+  }
+  beginRun();
 }
 
 // ---------- wiring ----------
 function wire() {
+  fullscreen.init(() => stop());
+
   bookSel.addEventListener("change", () => { wholeChapter(1); updatePlayLabel(); });
   for (const s of [sch, sv, ech, ev]) s.addEventListener("change", () => { syncPicker(); updatePlayLabel(); });
   $<HTMLButtonElement>("chapter-only").addEventListener("click", () => { wholeChapter(+sch.value); updatePlayLabel(); });
@@ -278,82 +286,59 @@ function wire() {
   for (const b of speedBtns) b.addEventListener("click", () => setSpeed(b.dataset.speed as Speed));
   for (const b of themeBtns) b.addEventListener("click", () => setTheme(b.dataset.themeChoice as Theme));
   for (const b of modeBtns) b.addEventListener("click", () => setMode(b.dataset.mode as ScrollMode));
-  playBtn.addEventListener("click", () => void onPlay());
-  restartBtn.addEventListener("click", async () => {
-    if (!(await applyRange(true))) return;
-    start();
-    hideChromeSoon();
-  });
 
-  // Stage tap: while paused with chrome up, dismiss to frozen passage; otherwise reveal chrome.
-  stage.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    if (body.classList.contains("paused") && !body.classList.contains("chrome-hidden")) {
-      hideChrome();
+  // Must stay sync in the gesture so requestFullscreen is allowed.
+  playBtn.addEventListener("click", () => { void onPlay(); });
+  restartBtn.addEventListener("click", () => { void onRestart(); });
+
+  // Double-tap stage → stop (news/ticker gesture).
+  stage.addEventListener("pointerup", (ev) => {
+    if (!running) return;
+    if (ev.pointerType === "mouse" && ev.button !== 0) return;
+    const cur = { t: ev.timeStamp, x: ev.clientX, y: ev.clientY };
+    if (
+      firstTap &&
+      cur.t - firstTap.t <= TAP_MS &&
+      Math.hypot(cur.x - firstTap.x, cur.y - firstTap.y) <= TAP_DIST
+    ) {
+      firstTap = null;
+      stop();
       return;
     }
-    showChrome();
+    firstTap = cur;
   });
-  // Click outside chrome while paused dismisses settings (chrome covers little of the stage on desktop).
-  document.addEventListener("pointerdown", (e) => {
-    if (!body.classList.contains("paused") || body.classList.contains("chrome-hidden")) return;
-    if (!errorBox.hidden) return;
-    const t = e.target;
-    if (t instanceof Node && chrome.contains(t)) return;
-    hideChrome();
-  });
-  errorBox.addEventListener("pointerdown", showChrome);
-  // Interacting with chrome keeps it up while playing; do not fight pause-dismiss.
-  chrome.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    if (scroller?.playing) showChrome();
-    else revealChrome();
-  });
-  chrome.addEventListener("focusin", () => {
-    clearTimeout(idleTimer);
-    body.classList.remove("chrome-hidden");
-  });
-  chrome.addEventListener("focusout", () => {
-    // Defer so a focus move within chrome doesn't flash-hide.
-    requestAnimationFrame(() => {
-      if (chrome.contains(document.activeElement)) return;
-      scheduleHide();
-    });
-  });
-  chrome.addEventListener("pointermove", () => {
-    if (scroller?.playing) scheduleHide();
-  });
+
+  document.addEventListener("pointermove", () => { if (running) armIdle(); });
+
   document.addEventListener("keydown", (e) => {
+    if (running) {
+      if (e.key === "Escape" || e.key === " " || e.code === "Space") {
+        e.preventDefault();
+        stop();
+      }
+      return;
+    }
+    // On settings page: Space starts when not focused on a control.
     const tag = e.target;
     const inField =
       tag instanceof HTMLSelectElement ||
       tag instanceof HTMLButtonElement ||
       tag instanceof HTMLInputElement ||
       tag instanceof HTMLTextAreaElement;
-
-    if (e.key === "Escape") {
-      e.preventDefault();
-      hideChrome();
-      return;
-    }
-    if (e.key === " " && !inField) {
+    if ((e.key === " " || e.code === "Space") && !inField) {
       e.preventDefault();
       void onPlay();
-      return;
     }
-    // Don't steal keys typed into controls; otherwise reveal chrome.
-    if (!inField) showChrome();
   });
+
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden && scroller?.playing) stop();
+    if (document.hidden && running) stop();
   });
-  window.addEventListener("resize", () => {
-    // Recalibrate speed only; do not rebuild the strip (avoids jumps).
-    scroller?.setSpeed(prefs.speed);
-  });
+  window.addEventListener("resize", () => scroller?.setSpeed(prefs.speed));
 }
 
 async function boot() {
+  showSettings();
   wire();
   try {
     meta = await loader.loadGenevaMeta();
@@ -376,7 +361,6 @@ async function boot() {
   applyTheme(prefs.theme);
   applyModeUi(prefs.mode);
   updatePlayLabel();
-  revealChrome();
 }
 
 void boot();

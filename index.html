@@ -9,8 +9,8 @@
     <title>Bible scroller</title>
     <link rel="stylesheet" href="./src/style.css" />
   </head>
-  <body>
-    <main id="stage" aria-label="Scrolling passage">
+  <body class="state-stopped mode-vertical">
+    <main id="stage" aria-label="Scrolling passage" hidden>
       <div id="track"></div>
     </main>
 
@@ -19,11 +19,12 @@
       <p class="error-help"></p>
     </div>
 
-    <section id="chrome" class="chrome" aria-label="Scroller controls">
+    <section id="chrome" class="chrome" aria-label="Scroller settings">
       <header class="chrome-head">
         <h1>Bible scroller</h1>
         <p class="edition">Geneva Bible (1599)</p>
       </header>
+      <p class="hint">Start opens a full-screen scroll. Esc, Space, or a double-tap returns here.</p>
 
       <fieldset class="range">
         <legend>Passage</legend>
