@@ -1,10 +1,9 @@
 import * as fullscreen from "./fullscreen";
+import { SAMPLE_STARTS, canonBooks, resolveFromStart, sampleKey } from "./canon";
 import { createLoader, DataError } from "./loader";
-import { loadPrefs, loadTheme, savePrefs, safeStorage } from "./prefs";
-import { groupBooks, startToEnd } from "./prefs";
-import { setCommentaryName } from "./scroller";
-import { Scroller } from "./scroller";
-import { LoopCursor, resolveRange } from "./sequence";
+import { groupBooks, loadPrefs, loadTheme, savePrefs, safeStorage } from "./prefs";
+import { setCommentaryName, Scroller } from "./scroller";
+import { LoopCursor } from "./sequence";
 import type { Commentary, FontSize, GenevaBook, GenevaMeta, HenryBook, Prefs, ScrollMode, Speed, Theme } from "./types";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -12,6 +11,7 @@ const body = document.body;
 const stage = $<HTMLElement>("stage");
 const track = $<HTMLElement>("track");
 const chrome = $<HTMLElement>("chrome");
+const sampleSel = $<HTMLSelectElement>("sample");
 const bookSel = $<HTMLSelectElement>("book");
 const sch = $<HTMLSelectElement>("sch");
 const sv = $<HTMLSelectElement>("sv");
@@ -44,9 +44,8 @@ let running = false;
 let idleTimer = 0;
 let firstTap: { t: number; x: number; y: number } | null = null;
 const bookCache = new Map<string, GenevaBook>();
-const henryCache = new Map<string, HenryBook | null>();
+const commentaryCache = new Map<string, HenryBook | null>();
 
-// ---------- messages ----------
 function showError(msg: string, help = "") {
   errorBox.querySelector(".error-msg")!.textContent = msg;
   errorBox.querySelector(".error-help")!.textContent = help;
@@ -66,7 +65,6 @@ function showNotice(msg: string) {
   noticeTimer = window.setTimeout(() => notice.classList.remove("show"), 5000);
 }
 
-// ---------- surfaces (settings page vs fullscreen stage) ----------
 function showSettings() {
   body.classList.add("state-stopped");
   body.classList.remove("state-running", "idle", "is-fullviewport");
@@ -80,15 +78,13 @@ function showStage() {
   chrome.hidden = true;
   if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
 }
-
 function armIdle() {
   clearTimeout(idleTimer);
   body.classList.remove("idle");
   if (running) idleTimer = window.setTimeout(() => { if (running) body.classList.add("idle"); }, IDLE_MS);
 }
 
-// ---------- range picker ----------
-const metaBook = (id: string) => meta!.books.find((b) => b.book_id === id)!;
+const metaBook = (id: string) => canonBooks(meta!).find((b) => b.book_id === id)!;
 function fillNums(sel: HTMLSelectElement, n: number, value: number) {
   if (sel.options.length !== n) {
     sel.replaceChildren(...Array.from({ length: n }, (_, i) => new Option(String(i + 1), String(i + 1))));
@@ -99,13 +95,14 @@ function syncPicker() {
   const mb = metaBook(bookSel.value);
   fillNums(sch, mb.chapters, +sch.value || 1);
   fillNums(sv, mb.verse_counts[+sch.value - 1] || 1, +sv.value || 1);
+  syncSampleSelect();
   updateHenryNa();
 }
 function updateHenryNa() {
   const c = prefs?.commentary ?? "none";
   const avail = commentaryAvail.get(c);
   const na = c !== "none" && !!avail && !avail.has(bookSel.value);
-  henryNa.textContent = na ? `${COMMENTARY_NAME[c]} isn\u2019t available for this book.` : "";
+  henryNa.textContent = na ? `${COMMENTARY_NAME[c]} isn’t available for this book.` : "";
   henryNa.hidden = !na;
 }
 function setCommentary(c: Commentary) {
@@ -113,7 +110,7 @@ function setCommentary(c: Commentary) {
   setCommentaryName(COMMENTARY_NAME[c] || "Commentary");
   if (prefs) { prefs.commentary = c; persist(); }
   updateHenryNa();
-  if (c !== "none") void ensureHenry();
+  if (c !== "none") void ensureCommentary();
 }
 function setSize(z: FontSize) {
   for (const b of sizeBtns) b.setAttribute("aria-checked", String(b.dataset.size === z));
@@ -127,29 +124,48 @@ function setPicker(r: Prefs["range"]) {
   const mb = metaBook(r.book_id);
   fillNums(sch, mb.chapters, r.start.chapter);
   fillNums(sv, mb.verse_counts[r.start.chapter - 1] || 1, r.start.verse);
+  syncSampleSelect();
   updateHenryNa();
 }
-function pickerRange(): Prefs["range"] {
-  return startToEnd(meta!, bookSel.value, { chapter: +sch.value, verse: +sv.value });
+function pickerStart(): Prefs["range"] {
+  return { book_id: bookSel.value, start: { chapter: +sch.value, verse: +sv.value } };
 }
-const rangeKey = (r: Prefs["range"]) => `${r.book_id}:${r.start.chapter}:${r.start.verse}-${r.end.chapter}:${r.end.verse}`;
+const startKey = (r: Prefs["range"]) => `${r.book_id}:${r.start.chapter}:${r.start.verse}`;
+
+function fillSampleOptions() {
+  const available = new Set(canonBooks(meta!).map((b) => b.book_id));
+  const opts = [new Option("Custom…", "")];
+  for (const s of SAMPLE_STARTS) {
+    if (!available.has(s.book_id)) continue;
+    const mb = metaBook(s.book_id);
+    if (s.start.chapter > mb.chapters) continue;
+    if (s.start.verse > (mb.verse_counts[s.start.chapter - 1] || 0)) continue;
+    opts.push(new Option(s.label, sampleKey(s.book_id, s.start)));
+  }
+  sampleSel.replaceChildren(...opts);
+}
+function syncSampleSelect() {
+  const key = startKey(pickerStart());
+  sampleSel.value = [...sampleSel.options].some((o) => o.value === key) ? key : "";
+}
+function applySample(value: string) {
+  if (!value) return;
+  const hit = SAMPLE_STARTS.find((s) => sampleKey(s.book_id, s.start) === value);
+  if (!hit) return;
+  setPicker({ book_id: hit.book_id, start: { ...hit.start } });
+}
 function updatePlayLabel() {
-  const dirty = rangeKey(pickerRange()) !== appliedKey;
-  // Resume = same range already loaded (stopped mid-scroll); Start = fresh or dirty.
+  const dirty = startKey(pickerStart()) !== appliedKey;
   playBtn.textContent = !scroller || dirty ? "Start" : "Resume";
 }
 
-// ---------- prefs ----------
-function persist() {
-  savePrefs(storage, prefs);
-}
+function persist() { savePrefs(storage, prefs); }
 function setSpeed(s: Speed) {
   prefs.speed = s;
   for (const b of speedBtns) b.setAttribute("aria-checked", String(b.dataset.speed === s));
   scroller?.setSpeed(s);
   persist();
 }
-
 function applyTheme(t: Theme) {
   document.documentElement.dataset.theme = t;
   for (const b of themeBtns) b.setAttribute("aria-checked", String(b.dataset.themeChoice === t));
@@ -180,43 +196,52 @@ function setMode(m: ScrollMode) {
   else updatePlayLabel();
 }
 
-// ---------- loading + playback ----------
-async function getHenry(bookId: string): Promise<HenryBook | null> {
-  const c = prefs.commentary;
-  if (c === "none") return null;
-  const k = `${c}:${bookId}`;
-  if (!henryCache.has(k)) henryCache.set(k, await loader.loadCommentaryBook(c, bookId));
-  return henryCache.get(k)!;
+async function ensureBooks(): Promise<Map<string, GenevaBook>> {
+  const list = canonBooks(meta!);
+  await Promise.all(list.map(async (mb) => {
+    if (bookCache.has(mb.book_id)) return;
+    bookCache.set(mb.book_id, await loader.loadGenevaBook(mb.book_id));
+  }));
+  return bookCache;
 }
-async function ensureHenry() {
+async function ensureCommentaryMap(): Promise<Map<string, HenryBook | null>> {
+  const c = prefs.commentary;
+  const map = new Map<string, HenryBook | null>();
+  if (c === "none") return map;
+  const list = canonBooks(meta!);
+  await Promise.all(list.map(async (mb) => {
+    const k = `${c}:${mb.book_id}`;
+    if (!commentaryCache.has(k)) commentaryCache.set(k, await loader.loadCommentaryBook(c, mb.book_id));
+    map.set(mb.book_id, commentaryCache.get(k)!);
+  }));
+  return map;
+}
+async function ensureCommentary() {
   if (!cursor || prefs.commentary === "none") return;
-  const h = await getHenry(prefs.range.book_id);
-  cursor.setHenryBook(h);
-  if (!h && !henryNoticeShown) {
+  const map = await ensureCommentaryMap();
+  cursor.setHenryBook(map);
+  if (!map.get(prefs.range.book_id) && !henryNoticeShown) {
     henryNoticeShown = true;
     showNotice("Commentary data not available.");
   }
 }
 
-async function applyRange(force = false): Promise<boolean> {
-  const r = pickerRange();
-  const key = rangeKey(r);
+async function applyStart(force = false): Promise<boolean> {
+  const r = pickerStart();
+  const key = startKey(r);
   if (!force && key === appliedKey && cursor) return true;
-  let book = bookCache.get(r.book_id);
   try {
-    if (!book) {
-      book = await loader.loadGenevaBook(r.book_id);
-      bookCache.set(r.book_id, book);
-    }
-    const verses = resolveRange(meta!, book, r);
+    const books = await ensureBooks();
+    const verses = resolveFromStart(meta!, books, { book_id: r.book_id, ...r.start });
     if (!verses.length) throw new DataError("range_invalid", "No verses in that passage.");
     clearError();
-    prefs.range = r;
+    prefs.range = { book_id: r.book_id, start: r.start };
     persist();
-    cursor = new LoopCursor(verses, prefs.commentary !== "none" ? await getHenry(r.book_id) : null);
+    const commentary = prefs.commentary !== "none" ? await ensureCommentaryMap() : null;
+    cursor = new LoopCursor(verses, commentary);
     appliedKey = key;
     henryNoticeShown = false;
-    await ensureHenry();
+    await ensureCommentary();
     const src = { next: () => cursor!.next(prefs.commentary !== "none") };
     if (!scroller) scroller = new Scroller(stage, track, src, prefs.speed, prefs.mode);
     else {
@@ -232,7 +257,6 @@ async function applyRange(force = false): Promise<boolean> {
   }
 }
 
-/** Begin scroll on the fullscreen/full-viewport stage (scroller must already exist). */
 function beginRun() {
   if (!scroller) return;
   running = true;
@@ -241,8 +265,6 @@ function beginRun() {
   updatePlayLabel();
   armIdle();
 }
-
-/** Leave scroll surface → settings page; freeze position for Resume. */
 function stop() {
   running = false;
   firstTap = null;
@@ -255,15 +277,11 @@ function stop() {
 }
 
 async function onPlay() {
-  if (running) {
-    stop();
-    return;
-  }
-  // Fullscreen must start inside the user gesture — before any await.
+  if (running) { stop(); return; }
   void fullscreen.enter();
-  const dirty = rangeKey(pickerRange()) !== appliedKey;
+  const dirty = startKey(pickerStart()) !== appliedKey;
   if (!scroller || dirty) {
-    if (!(await applyRange())) {
+    if (!(await applyStart())) {
       fullscreen.exit();
       showSettings();
       return;
@@ -271,10 +289,9 @@ async function onPlay() {
   }
   beginRun();
 }
-
 async function onRestart() {
   void fullscreen.enter();
-  if (!(await applyRange(true))) {
+  if (!(await applyStart(true))) {
     fullscreen.exit();
     showSettings();
     return;
@@ -282,65 +299,44 @@ async function onRestart() {
   beginRun();
 }
 
-// ---------- wiring ----------
 function wire() {
   fullscreen.init(() => stop());
-
-  bookSel.addEventListener("change", () => { setPicker(startToEnd(meta!, bookSel.value, { chapter: 1, verse: 1 })); updatePlayLabel(); });
+  sampleSel.addEventListener("change", () => { applySample(sampleSel.value); updatePlayLabel(); });
+  bookSel.addEventListener("change", () => {
+    const mb = metaBook(bookSel.value);
+    setPicker({ book_id: mb.book_id, start: { chapter: 1, verse: 1 } });
+    updatePlayLabel();
+  });
   for (const s of [sch, sv]) s.addEventListener("change", () => { syncPicker(); updatePlayLabel(); });
   for (const b of commentaryBtns) b.addEventListener("click", () => { henryNoticeShown = false; setCommentary(b.dataset.commentary as Commentary); });
   for (const b of sizeBtns) b.addEventListener("click", () => setSize(b.dataset.size as FontSize));
   for (const b of speedBtns) b.addEventListener("click", () => setSpeed(b.dataset.speed as Speed));
   for (const b of themeBtns) b.addEventListener("click", () => setTheme(b.dataset.themeChoice as Theme));
   for (const b of modeBtns) b.addEventListener("click", () => setMode(b.dataset.mode as ScrollMode));
-
-  // Must stay sync in the gesture so requestFullscreen is allowed.
   playBtn.addEventListener("click", () => { void onPlay(); });
   restartBtn.addEventListener("click", () => { void onRestart(); });
-
-  // Double-tap stage → stop (news/ticker gesture).
   stage.addEventListener("pointerup", (ev) => {
     if (!running) return;
     if (ev.pointerType === "mouse" && ev.button !== 0) return;
     const cur = { t: ev.timeStamp, x: ev.clientX, y: ev.clientY };
-    if (
-      firstTap &&
-      cur.t - firstTap.t <= TAP_MS &&
-      Math.hypot(cur.x - firstTap.x, cur.y - firstTap.y) <= TAP_DIST
-    ) {
+    if (firstTap && cur.t - firstTap.t <= TAP_MS && Math.hypot(cur.x - firstTap.x, cur.y - firstTap.y) <= TAP_DIST) {
       firstTap = null;
       stop();
       return;
     }
     firstTap = cur;
   });
-
   document.addEventListener("pointermove", () => { if (running) armIdle(); });
-
   document.addEventListener("keydown", (e) => {
     if (running) {
-      if (e.key === "Escape" || e.key === " " || e.code === "Space") {
-        e.preventDefault();
-        stop();
-      }
+      if (e.key === "Escape" || e.key === " " || e.code === "Space") { e.preventDefault(); stop(); }
       return;
     }
-    // On settings page: Space starts when not focused on a control.
     const tag = e.target;
-    const inField =
-      tag instanceof HTMLSelectElement ||
-      tag instanceof HTMLButtonElement ||
-      tag instanceof HTMLInputElement ||
-      tag instanceof HTMLTextAreaElement;
-    if ((e.key === " " || e.code === "Space") && !inField) {
-      e.preventDefault();
-      void onPlay();
-    }
+    const inField = tag instanceof HTMLSelectElement || tag instanceof HTMLButtonElement || tag instanceof HTMLInputElement || tag instanceof HTMLTextAreaElement;
+    if ((e.key === " " || e.code === "Space") && !inField) { e.preventDefault(); void onPlay(); }
   });
-
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden && running) stop();
-  });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && running) stop(); });
   window.addEventListener("resize", () => scroller?.setSpeed(prefs.speed));
 }
 
@@ -359,13 +355,13 @@ async function boot() {
     return;
   }
   $<HTMLElement>("boot").remove();
-  const sorted = [...meta.books].sort((a, b) => a.order - b.order);
-  bookSel.replaceChildren(...groupBooks(sorted).map(([label, bs]) => {
+  bookSel.replaceChildren(...groupBooks(canonBooks(meta)).map(([label, bs]) => {
     const g = document.createElement("optgroup");
     g.label = label;
     g.append(...bs.map((b) => new Option(b.book, b.book_id)));
     return g;
   }));
+  fillSampleOptions();
   for (const c of ["henry", "calvin"] as const) {
     void loader.loadCommentaryMeta(c).then((m) => {
       commentaryAvail.set(c, new Set(m?.books.map((b) => b.book_id) ?? []));

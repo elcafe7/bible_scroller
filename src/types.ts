@@ -78,8 +78,9 @@ export type Theme = "light" | "dark";
 export type ScrollMode = "vertical" | "horizontal";
 export type Commentary = "none" | "henry" | "calvin";
 export type FontSize = "s" | "m" | "l" | "xl";
+/** Start-only. Legacy end/henry may still appear in old localStorage. */
 export interface Prefs {
-  range: { book_id: string; start: VersePoint; end: VersePoint };
+  range: { book_id: string; start: VersePoint; end?: VersePoint };
   commentary: Commentary;
   fontSize: FontSize;
   speed: Speed;
