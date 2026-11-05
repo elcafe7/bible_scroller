@@ -21,16 +21,23 @@
 
     <section id="chrome" class="chrome" aria-label="Scroller settings">
       <header class="chrome-head">
-        <h1>Scroll</h1>
-        <p class="edition">Geneva Bible (1599)</p>
+        <div class="brand">
+          <a class="ap-link" href="https://apocalypse.press/" target="_blank" rel="noopener noreferrer" aria-label="Apocalypse Press home">
+            <span class="wordmark-mark" aria-hidden="true">AP</span>
+          </a>
+          <a class="wordmark" href="./" aria-label="Scroll home">
+            <span class="wordmark-mark" aria-hidden="true">S</span>
+            <span>Scroll</span>
+          </a>
+        </div>
+        <label class="select-wrap" aria-label="Bible edition">
+          <select id="edition"></select>
+          <span aria-hidden="true">⌄</span>
+        </label>
       </header>
 
       <fieldset class="range">
         <legend>Start at</legend>
-        <label class="field">
-          <span>Sample</span>
-          <select id="sample" aria-label="Sample passage"></select>
-        </label>
         <label class="field book-field">
           <span>Book</span>
           <select id="book"></select>
@@ -76,8 +83,13 @@
         <button type="button" id="play" class="primary">Start</button>
         <button type="button" id="restart">Restart</button>
       </div>
-    <p class="hint">Start opens a full-screen scroll. Esc, Space, or a double-tap returns here.</p>
+      <p class="hint">Start opens a full-screen scroll. Esc, Space, or a double-tap returns here.</p>
     </section>
+
+    <footer id="site-footer">
+      <p class="shortcuts"><kbd>Esc</kbd><kbd>Space</kbd> return</p>
+      <p class="offline-note">a project of <a href="https://jesuspeoplesf.com" target="_blank" rel="noopener noreferrer">JPSF</a> &amp; <a href="https://apocalypse.press" target="_blank" rel="noopener noreferrer">AP</a></p>
+    </footer>
 
     <p id="notice" class="notice" role="status" aria-live="polite"></p>
     <p id="boot" class="boot">Loading…</p>

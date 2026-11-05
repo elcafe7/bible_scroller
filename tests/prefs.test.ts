@@ -15,9 +15,13 @@ const mem = (init: Record<string, string> = {}): KV & { m: Map<string, string> }
 describe("preferences", async () => {
   const meta = await loader.loadGenevaMeta();
 
-  it("first-run defaults: John 1:1 start-only, commentary none, medium", () => {
-    expect(loadPrefs(mem(), meta)).toEqual({
-      range: { book_id: "john", start: { chapter: 1, verse: 1 } },
+  it("first-run defaults: John 3:16 when available, else John 1:1; commentary none, medium", () => {
+    const d = loadPrefs(mem(), meta);
+    const john = meta.books.find((b) => b.book_id === "john");
+    const expectStart = john && john.chapters >= 3 && (john.verse_counts[2] ?? 0) >= 16
+      ? { chapter: 3, verse: 16 } : { chapter: 1, verse: 1 };
+    expect(d).toEqual({
+      range: { book_id: "john", start: expectStart },
       commentary: "none",
       fontSize: "m",
       speed: "medium",

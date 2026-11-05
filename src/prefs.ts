@@ -47,7 +47,10 @@ export function groupBooks(books: GenevaMetaBook[]): [string, GenevaMetaBook[]][
 export function defaultPrefs(meta: GenevaMeta): Prefs {
   const books = canonBooks(meta);
   const mb = books.find((b) => b.book_id === "john") ?? books[0] ?? [...meta.books].sort((a, b) => a.order - b.order)[0];
-  return { range: { book_id: mb.book_id, start: { chapter: 1, verse: 1 } }, commentary: "none", fontSize: "m", speed: "medium", theme: "light", mode: "vertical" };
+  const start = mb.book_id === "john" && (mb.chapters >= 3) && (mb.verse_counts[2] ?? 0) >= 16
+    ? { chapter: 3, verse: 16 }
+    : { chapter: 1, verse: 1 };
+  return { range: { book_id: mb.book_id, start }, commentary: "none", fontSize: "m", speed: "medium", theme: "light", mode: "vertical" };
 }
 
 function migrateRange(meta: GenevaMeta, r: unknown): Prefs["range"] | null {

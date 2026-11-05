@@ -58,7 +58,7 @@ The zip unpacks to one `bible_scroller/` folder with `index.html`, `assets/`, `d
 
 ## Using the scroller
 
-- **Passage:** pick a **Sample** (Genesis 1:1, Psalm 23:1, John 1:1, Romans 8:1, …) or set Start book + chapter:verse. Scroll continues through the Protestant 66-book canon and loops. Book menu is OT/NT only (no Apocrypha). First run starts on John 1:1.
+- **Passage:** pick Start book + chapter:verse (OT / NT / Apocrypha optgroups). Scroll reads to the end of that book, then loops. Edition select matches Verse/Word (Geneva only today). First run starts on John 3:16 when available.
 - **Settings vs scroll:** Settings is a normal page (not an overlay). **Start** / **Resume** opens a full-screen scroll (Fullscreen API when the browser allows it, otherwise a CSS full-viewport fallback). **Esc**, **Space**, or a **double-tap** on the passage returns to settings and freezes the place so Resume can continue. **Restart** resets to the start of the range and enters scroll again.
 - **Mode:** Vertical (default) is the full-screen ambient column. Ticker is a one-line horizontal marquee — one verse (or Henry block) at a time, looping the chosen range.
 - **Speed:** Slow, Medium (default), Fast. Vertical is about 48 / 80 / 130 lines a minute (Fast is brisk continuous reading). Horizontal ticker uses a separate character pace; both stay far slower than a stock ticker.

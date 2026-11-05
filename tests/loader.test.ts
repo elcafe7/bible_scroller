@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { stripRequote, createLoader, DataError } from "../src/loader";
+import { stripRequote, formatCommentaryText, createLoader, DataError } from "../src/loader";
 import { henryForVerse, LoopCursor, onePass, resolveRange } from "../src/sequence";
 import { fsFetch } from "./helpers";
 
@@ -115,5 +115,14 @@ describe("stripRequote", () => {
     expect(stripRequote("¹ In the beginning was the Word. \n² The same was in the beginning. \n\nAugustine said...")).toBe("Augustine said...");
     expect(stripRequote("¹⁰ Making request. \n\nComment.")).toBe("Comment.");
     expect(stripRequote("1. In the beginning. Calvin lemma stays.")).toBe("1. In the beginning. Calvin lemma stays.");
+  });
+});
+
+describe("formatCommentaryText", () => {
+  it("double-spaces after periods and keeps paragraph breaks", () => {
+    const out = formatCommentaryText("First sentence. Second sentence.\n\nNew paragraph. More.");
+    expect(out.split("\n\n")).toHaveLength(2);
+    expect(out).toContain(".\u00A0 Second");
+    expect(out).toContain(".\u00A0 More");
   });
 });

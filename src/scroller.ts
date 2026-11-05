@@ -18,6 +18,15 @@ function el(tag: string, cls?: string, text?: string) {
   return n;
 }
 
+/** Collapse wrapping whitespace but keep the NBSP+space double-gap after periods. */
+function flattenText(text: string): string {
+  return text
+    .replace(/\u00A0 /g, "\u0000")
+    .replace(/\s+/g, " ")
+    .replace(/\u0000/g, "\u00A0 ")
+    .trim();
+}
+
 /** Measure in a detached tree so probes never mutate the live track (avoids layout jumps). */
 function measure(node: HTMLElement, track: HTMLElement): HTMLElement {
   const host = el("div");
@@ -43,7 +52,7 @@ export function renderItem(item: LoopItem, mode: ScrollMode = "vertical"): HTMLE
   if (item.section_title) ref.append(" ", el("span", "title", item.section_title));
   n.append(ref);
   for (const para of item.text.split(/\n\s*\n/)) {
-    const t = para.replace(/\s*\n\s*/g, " ").trim();
+    const t = flattenText(para.replace(/\n/g, " "));
     if (t) n.append(el("p", "", t));
   }
   return n;
@@ -55,7 +64,7 @@ function renderHorizontalItem(item: LoopItem): HTMLElement {
     const n = el("article", "item verse");
     n.append(
       el("span", "ref", `${item.book} ${item.chapter}:${item.verse}`),
-      el("span", "body", item.text.replace(/\s+/g, " ").trim()),
+      el("span", "body", flattenText(item.text)),
     );
     return n;
   }
@@ -66,7 +75,7 @@ function renderHorizontalItem(item: LoopItem): HTMLElement {
   if (item.section_title) label += ` — ${item.section_title}`;
   n.append(
     el("span", "ref", label),
-    el("span", "body", item.text.replace(/\s+/g, " ").trim()),
+    el("span", "body", flattenText(item.text)),
   );
   return n;
 }

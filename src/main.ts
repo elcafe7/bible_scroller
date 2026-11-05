@@ -1,5 +1,5 @@
 import * as fullscreen from "./fullscreen";
-import { SAMPLE_STARTS, canonBooks, resolveFromStart, sampleKey } from "./canon";
+import { canonBooks, resolveFromStart } from "./canon";
 import { createLoader, DataError } from "./loader";
 import { groupBooks, loadPrefs, loadTheme, savePrefs, safeStorage } from "./prefs";
 import { setCommentaryName, Scroller } from "./scroller";
@@ -11,7 +11,7 @@ const body = document.body;
 const stage = $<HTMLElement>("stage");
 const track = $<HTMLElement>("track");
 const chrome = $<HTMLElement>("chrome");
-const sampleSel = $<HTMLSelectElement>("sample");
+const editionSel = $<HTMLSelectElement>("edition");
 const bookSel = $<HTMLSelectElement>("book");
 const sch = $<HTMLSelectElement>("sch");
 const sv = $<HTMLSelectElement>("sv");
@@ -95,7 +95,6 @@ function syncPicker() {
   const mb = metaBook(bookSel.value);
   fillNums(sch, mb.chapters, +sch.value || 1);
   fillNums(sv, mb.verse_counts[+sch.value - 1] || 1, +sv.value || 1);
-  syncSampleSelect();
   updateHenryNa();
 }
 function updateHenryNa() {
@@ -124,7 +123,6 @@ function setPicker(r: Prefs["range"]) {
   const mb = metaBook(r.book_id);
   fillNums(sch, mb.chapters, r.start.chapter);
   fillNums(sv, mb.verse_counts[r.start.chapter - 1] || 1, r.start.verse);
-  syncSampleSelect();
   updateHenryNa();
 }
 function pickerStart(): Prefs["range"] {
@@ -132,27 +130,12 @@ function pickerStart(): Prefs["range"] {
 }
 const startKey = (r: Prefs["range"]) => `${r.book_id}:${r.start.chapter}:${r.start.verse}`;
 
-function fillSampleOptions() {
-  const available = new Set(canonBooks(meta!).map((b) => b.book_id));
-  const opts = [new Option("Custom…", "")];
-  for (const s of SAMPLE_STARTS) {
-    if (!available.has(s.book_id)) continue;
-    const mb = metaBook(s.book_id);
-    if (s.start.chapter > mb.chapters) continue;
-    if (s.start.verse > (mb.verse_counts[s.start.chapter - 1] || 0)) continue;
-    opts.push(new Option(s.label, sampleKey(s.book_id, s.start)));
-  }
-  sampleSel.replaceChildren(...opts);
-}
-function syncSampleSelect() {
-  const key = startKey(pickerStart());
-  sampleSel.value = [...sampleSel.options].some((o) => o.value === key) ? key : "";
-}
-function applySample(value: string) {
-  if (!value) return;
-  const hit = SAMPLE_STARTS.find((s) => sampleKey(s.book_id, s.start) === value);
-  if (!hit) return;
-  setPicker({ book_id: hit.book_id, start: { ...hit.start } });
+
+function fillEditionOptions(m: GenevaMeta) {
+  const editions = [{ id: m.edition_id, name: m.edition_name }];
+  editionSel.replaceChildren(...editions.map((e) => new Option(e.name, e.id)));
+  editionSel.value = m.edition_id;
+  editionSel.disabled = editions.length <= 1;
 }
 function updatePlayLabel() {
   const dirty = startKey(pickerStart()) !== appliedKey;
@@ -295,7 +278,7 @@ async function onRestart() {
 
 function wire() {
   fullscreen.init(() => stop());
-  sampleSel.addEventListener("change", () => { applySample(sampleSel.value); updatePlayLabel(); });
+  editionSel.addEventListener("change", () => { /* only Geneva ships today */ });
   bookSel.addEventListener("change", () => {
     const mb = metaBook(bookSel.value);
     setPicker({ book_id: mb.book_id, start: { chapter: 1, verse: 1 } });
@@ -355,7 +338,7 @@ async function boot() {
     g.append(...bs.map((b) => new Option(b.book, b.book_id)));
     return g;
   }));
-  fillSampleOptions();
+  fillEditionOptions(meta);
   for (const c of ["henry", "calvin"] as const) {
     void loader.loadCommentaryMeta(c).then((m) => {
       commentaryAvail.set(c, new Set(m?.books.map((b) => b.book_id) ?? []));

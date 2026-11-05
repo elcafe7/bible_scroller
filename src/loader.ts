@@ -75,7 +75,7 @@ export function createLoader(opts: LoaderOptions = {}) {
     if (!SAFE_ID.test(dir) || !SAFE_ID.test(bookId)) return null;
     const j = (await getJson(`${dir}/${bookId}.json`)) as HenryBook | undefined;
     if (!j || !Array.isArray(j.sections)) return null;
-    const sections = j.sections.map((s) => ({ ...s, text: stripRequote(s.text) })).filter((s) => s.text);
+    const sections = j.sections.map((s) => ({ ...s, text: formatCommentaryText(stripRequote(s.text)) })).filter((s) => s.text);
     return { ...j, sections };
   }
 
@@ -94,4 +94,23 @@ export function stripRequote(text: string): string {
   let i = 0;
   while (i < lines.length && (/^\s*[\u2070\u00b9\u00b2\u00b3\u2074-\u2079]+\s/.test(lines[i]) || (i > 0 && !lines[i].trim()))) i++;
   return lines.slice(i).join("\n").trim();
+}
+
+/**
+ * Commentary display polish for Henry/Calvin:
+ * - keep blank-line paragraph breaks (render splits on \n\n)
+ * - double-space after each period so sentence rhythm matches print commentary
+ *   (NBSP + space so HTML / ticker whitespace collapse still shows two spaces)
+ */
+export function formatCommentaryText(text: string): string {
+  const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+  if (!normalized) return "";
+  return normalized
+    .split(/\n\s*\n/)
+    .map((para) => {
+      const line = para.replace(/\s*\n\s*/g, " ").replace(/[ \t]+/g, " ").trim();
+      return line.replace(/\.(\s+)(?=\S)/g, ".\u00A0 ");
+    })
+    .filter(Boolean)
+    .join("\n\n");
 }

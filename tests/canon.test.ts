@@ -51,9 +51,7 @@ describe("canon filter", () => {
     expect(isOldTestament("matthew")).toBe(false);
   });
 
-  it("sample menu has Protestant-only presets", () => {
-    const labels = SAMPLE_STARTS.map((s) => s.label);
-    expect(labels).toEqual(expect.arrayContaining(["John 1:1", "Psalm 23:1", "Genesis 1:1", "Romans 8:1"]));
+  it("legacy SAMPLE_STARTS helpers stay Protestant-only (Sample UI removed)", () => {
     expect(SAMPLE_STARTS.every((s) => isProtestantBookId(s.book_id))).toBe(true);
     expect(sampleKey("john", { chapter: 3, verse: 16 })).toBe("john:3:16");
   });
