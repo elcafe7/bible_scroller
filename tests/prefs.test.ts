@@ -21,10 +21,19 @@ describe("preferences", async () => {
       henry: false,
       speed: "medium",
       theme: "light",
+      mode: "vertical",
     });
   });
 
-  it("theme defaults to light, corrupt → light, toggle persists", () => {
+  it("mode defaults to vertical, corrupt → vertical, toggle persists", () => {
+    expect(defaultPrefs(meta).mode).toBe("vertical");
+    expect(loadPrefs(mem({ [PREFS_KEY]: JSON.stringify({ mode: "diagonal" }) }), meta).mode).toBe("vertical");
+    const st = mem();
+    savePrefs(st, { ...defaultPrefs(meta), mode: "horizontal" });
+    expect(loadPrefs(st, meta).mode).toBe("horizontal");
+  });
+
+    it("theme defaults to light, corrupt → light, toggle persists", () => {
     expect(defaultPrefs(meta).theme).toBe("light");
     expect(loadTheme(mem())).toBe("light");
     expect(loadTheme(mem({ [PREFS_KEY]: "{bad" }))).toBe("light");

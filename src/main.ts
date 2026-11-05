@@ -2,7 +2,7 @@ import { createLoader, DataError } from "./loader";
 import { loadPrefs, loadTheme, savePrefs, safeStorage } from "./prefs";
 import { Scroller } from "./scroller";
 import { LoopCursor, resolveRange } from "./sequence";
-import type { GenevaBook, GenevaMeta, HenryBook, Prefs, Speed, Theme } from "./types";
+import type { GenevaBook, GenevaMeta, HenryBook, Prefs, ScrollMode, Speed, Theme } from "./types";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const body = document.body;
@@ -21,6 +21,7 @@ const notice = $<HTMLElement>("notice");
 const errorBox = $<HTMLElement>("error");
 const speedBtns = [...document.querySelectorAll<HTMLButtonElement>(".speed button")];
 const themeBtns = [...document.querySelectorAll<HTMLButtonElement>(".theme button")];
+const modeBtns = [...document.querySelectorAll<HTMLButtonElement>(".mode button")];
 
 const loader = createLoader();
 const storage = safeStorage();
@@ -62,8 +63,12 @@ function showChrome() {
   body.classList.remove("chrome-hidden");
   scheduleHide();
 }
+/** Hide chrome when playing (idle) or when paused so the user can see the frozen passage. */
 function hideChrome() {
-  if (scroller?.playing && errorBox.hidden) body.classList.add("chrome-hidden");
+  if (!errorBox.hidden) return;
+  if (scroller?.playing || body.classList.contains("paused")) {
+    body.classList.add("chrome-hidden");
+  }
 }
 function scheduleHide() {
   clearTimeout(idleTimer);
@@ -134,6 +139,29 @@ function setTheme(t: Theme) {
 }
 applyTheme(loadTheme(storage));
 
+function applyModeUi(m: ScrollMode) {
+  for (const b of modeBtns) b.setAttribute("aria-checked", String(b.dataset.mode === m));
+  body.classList.toggle("mode-horizontal", m === "horizontal");
+  body.classList.toggle("mode-vertical", m === "vertical");
+}
+function setMode(m: ScrollMode) {
+  prefs.mode = m;
+  applyModeUi(m);
+  persist();
+  if (!scroller) return;
+  const wasPlaying = scroller.playing;
+  // Rebuild cleanly for the new mode from the current range/source.
+  scroller.setMode(m);
+  if (cursor) cursor.restart();
+  scroller.reset();
+  if (wasPlaying) {
+    start();
+    hideChromeSoon();
+  } else {
+    updatePlayLabel();
+  }
+}
+
 // ---------- loading + playback ----------
 async function getHenry(bookId: string): Promise<HenryBook | null> {
   if (!henryCache.has(bookId)) henryCache.set(bookId, await loader.loadHenryBook(bookId));
@@ -170,8 +198,11 @@ async function applyRange(force = false): Promise<boolean> {
     henryNoticeShown = false;
     await ensureHenry();
     const src = { next: () => cursor!.next(prefs.henry) };
-    if (!scroller) scroller = new Scroller(stage, track, src, prefs.speed);
-    else scroller.setSource(src);
+    if (!scroller) scroller = new Scroller(stage, track, src, prefs.speed, prefs.mode);
+    else {
+      scroller.setSource(src);
+      if (scroller.scrollMode !== prefs.mode) scroller.setMode(prefs.mode);
+    }
     scroller.reset();
     return true;
   } catch (e) {
@@ -183,12 +214,15 @@ async function applyRange(force = false): Promise<boolean> {
 function stop() {
   scroller?.pause();
   body.classList.remove("playing");
+  body.classList.add("paused");
   clearTimeout(idleTimer);
+  showChrome(); // pause opens settings; Escape / tap-away can still dismiss to frozen view
   updatePlayLabel();
 }
 function start() {
   scroller!.play();
   body.classList.add("playing");
+  body.classList.remove("paused");
   updatePlayLabel();
   scheduleHide();
 }
@@ -201,8 +235,12 @@ async function onPlay() {
     hideChromeSoon();
     return;
   }
-  if (scroller.playing) stop();
-  else start();
+  if (scroller.playing) {
+    stop();
+  } else {
+    start();
+    hideChromeSoon(); // Resume returns to the scroll experience
+  }
 }
 function hideChromeSoon() {
   clearTimeout(idleTimer);
@@ -226,14 +264,23 @@ function wire() {
   });
   for (const b of speedBtns) b.addEventListener("click", () => setSpeed(b.dataset.speed as Speed));
   for (const b of themeBtns) b.addEventListener("click", () => setTheme(b.dataset.themeChoice as Theme));
+  for (const b of modeBtns) b.addEventListener("click", () => setMode(b.dataset.mode as ScrollMode));
   playBtn.addEventListener("click", () => void onPlay());
   restartBtn.addEventListener("click", async () => {
     if (!(await applyRange(true))) return;
     start();
+    hideChromeSoon();
   });
 
   // Tap / pointer / key reveals chrome; chrome interaction keeps it up.
-  stage.addEventListener("pointerdown", showChrome);
+  // While paused, a second tap on the stage dismisses chrome so the frozen passage is visible.
+  stage.addEventListener("pointerdown", () => {
+    if (body.classList.contains("paused") && !body.classList.contains("chrome-hidden")) {
+      hideChrome();
+      return;
+    }
+    showChrome();
+  });
   errorBox.addEventListener("pointerdown", showChrome);
   chrome.addEventListener("pointerdown", showChrome);
   chrome.addEventListener("focusin", () => { clearTimeout(idleTimer); body.classList.remove("chrome-hidden"); });
@@ -274,6 +321,7 @@ async function boot() {
   henryBox.checked = prefs.henry;
   setSpeed(prefs.speed);
   applyTheme(prefs.theme);
+  applyModeUi(prefs.mode);
   updatePlayLabel();
   showChrome();
 }

@@ -8,12 +8,12 @@ A stranger can unpack a zip, open the app offline, pick a Geneva 1599 book or pa
 
 Do not revisit.
 
-- **Product:** Ambient downloadable Bible verse scroller (not a ticker clone, not Lex Web).
+- **Product:** Ambient downloadable Bible verse scroller (not Lex Web). Vertical ambient scroll is the default; an optional **horizontal ticker** mode shows one line at a time (Nate override of the earlier “not a ticker” note).
 - **Default edition:** Geneva 1599 only in v1.
 - **Henry:** Off by default. Optional toggle enables verse → matching Henry note → next verse interchange. If a verse has no Henry section, show the verse only and continue (do not invent commentary).
 - **Range:** User picks a book or passage; the scroller **loops that range** (not whole-Bible default).
 - **Access / ship shape:** First deliverable is this private repo + downloadable zip. Live demo later may sit on poeta.icu with **no password**. No poeta deploy until Nate says yes.
-- **UI:** Full-screen ambient; pick range then hide chrome; controls on tap; **scroll-only** (no list mode); careful typography; reading-paced speeds (not ticker flash). At least three named speeds (e.g. slow / medium / fast), all slower than a stock ticker.
+- **UI:** Full-screen ambient; pick range then hide chrome; controls on tap; **no list mode**; careful typography; reading-paced speeds (not stock-ticker flash). Two scroll modes: **Vertical** (default full-screen column) and **Horizontal / ticker** (single line at a time, marquee-style). At least three named speeds (slow / medium / fast), all slower than a stock ticker.
 - **Stack:** TypeScript/JS client from day one. Static assets only. Runs from `file://` or a local static server after unzip. **No PHP.** No server-exclusive APIs.
 - **Data at runtime:** Rebuilt **consistent JSON** for Bible and Henry. One client loader. Lex SQLite (if used) is **build-time only**, never shipped in the zip.
 - **Repo:** `elcafe7/bible_scroller` (private). Spec path: `docs/specs/bible-scroller.md`.
@@ -184,8 +184,9 @@ Lex `gen.db` `bible.reference` form: `gen:<BookAbbr>:<chapter>:<verse>` with `te
 | Pick range | book_id + optional chapter/verse start–end | Validates against `meta` + book JSON; stores selection; starts scroll loop |
 | Toggle Henry | boolean | Immediate; next item in loop respects new mode |
 | Change speed | enum `slow` \| `medium` \| `fast` | Updates pixels/sec (or equivalent); no reload |
-| Tap / key | pointer or keyboard | Shows chrome if hidden; Hide after idle timeout (~3s) when playing |
-| Pause / resume | control | Freezes or continues scroll position |
+| Change mode | enum `vertical` \| `horizontal` | Switches between full-screen vertical scroll and one-line horizontal ticker; rebuilds cleanly (restarts the strip for that mode) |
+| Tap / key | pointer or keyboard | Shows chrome if hidden; hide after idle timeout (~3s) when playing; while paused, Escape or a stage tap dismisses chrome to the frozen passage |
+| Pause / resume | control | Pause freezes motion (RAF halted) and shows chrome; Resume continues from the frozen position and returns to the scroll experience (chrome auto-hides again) |
 
 No network requests. No auth. Idempotent: re-applying the same range/speed/Henry flag does not duplicate DOM nodes or restart from zero unless the user hits Restart.
 
@@ -219,11 +220,13 @@ When Henry is on: for each verse V in range, emit verse item then, if `henryForV
 {
   "range": { "book_id": "john", "start": { "chapter": 1, "verse": 1 }, "end": { "chapter": 1, "verse": 51 } },
   "henry": false,
-  "speed": "medium"
+  "speed": "medium",
+  "theme": "light",
+  "mode": "vertical"
 }
 ```
 
-Corrupt JSON → ignore and use first-run defaults (John 1 fixture range, henry false, medium).
+Corrupt JSON → ignore and use first-run defaults (John 1 fixture range, henry false, medium, light, vertical).
 
 ### Zip artifact
 
@@ -333,7 +336,7 @@ kill %1 2>/dev/null || true
 
 **Must show:** HTTP 200. Manual check (human or Playwright later): chrome hides after start.
 
-**First-failure rule:** do not add list mode or ticker-style marquee flash to "fix" speed.
+**First-failure rule:** do not add list mode. Horizontal ticker mode (added later) must stay reading-paced — never stock-ticker flash speeds.
 
 ### Task 6 — Preferences + failure UI
 

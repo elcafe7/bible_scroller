@@ -59,8 +59,9 @@ The zip unpacks to one `bible_scroller/` folder with `index.html`, `assets/`, `d
 ## Using the scroller
 
 - **Passage:** choose a book, then From / To chapter:verse. "This chapter" and "Whole book" are shortcuts. The range loops. First run starts on John 1.
-- **Start:** the controls fade out after about 3 seconds. Tap, click, or press any key to bring them back. Space pauses and resumes. Restart goes back to the start of the range.
-- **Speed:** Slow, Medium (default), Fast. All are reading-paced (about 15, 20, and 27 lines a minute), far slower than a ticker.
+- **Start / Pause / Resume:** Start hides the controls after a moment. Pause freezes the passage and opens the controls; Resume continues from the same spot and returns to the scroll view. Space toggles pause/resume. Escape (or a tap on the passage while paused) dismisses the controls so you can see the frozen text. Restart goes back to the start of the range.
+- **Mode:** Vertical (default) is the full-screen ambient column. Ticker is a one-line horizontal marquee — one verse (or Henry block) at a time, looping the chosen range.
+- **Speed:** Slow, Medium (default), Fast. All are reading-paced (about 15, 20, and 27 lines a minute vertically; similar reading pace horizontally), far slower than a stock ticker.
 - **Henry toggle:** "Matthew Henry between verses" is off by default. When on, Henry's note follows the last verse it covers in your range (each section shows once per loop), then the next verse continues. Verses with no Henry section just continue. If a book has no Henry file (Henry has no Psalms in the Lex data), a one-time "Commentary data not available." notice shows and verses keep scrolling.
 - Settings are saved in this browser's localStorage (`bible_scroller.v1`) only. The app still runs if storage is blocked.
 

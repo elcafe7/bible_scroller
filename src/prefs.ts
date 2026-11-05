@@ -1,8 +1,9 @@
-import type { GenevaMeta, Prefs, Speed, Theme } from "./types";
+import type { GenevaMeta, Prefs, ScrollMode, Speed, Theme } from "./types";
 
 export const PREFS_KEY = "bible_scroller.v1";
 const SPEEDS: Speed[] = ["slow", "medium", "fast"];
 const THEMES: Theme[] = ["light", "dark"];
+const MODES: ScrollMode[] = ["vertical", "horizontal"];
 
 /** Theme only, readable before meta loads so the page paints in the right palette. */
 export function loadTheme(storage: KV): Theme {
@@ -42,6 +43,7 @@ export function defaultPrefs(meta: GenevaMeta): Prefs {
     henry: false,
     speed: "medium",
     theme: "light",
+    mode: "vertical",
   };
 }
 
@@ -74,6 +76,7 @@ export function loadPrefs(storage: KV, meta: GenevaMeta): Prefs {
     henry: typeof p.henry === "boolean" ? p.henry : d.henry,
     speed: SPEEDS.includes(p.speed as Speed) ? (p.speed as Speed) : d.speed,
     theme: THEMES.includes(p.theme as Theme) ? (p.theme as Theme) : d.theme,
+    mode: MODES.includes(p.mode as ScrollMode) ? (p.mode as ScrollMode) : d.mode,
   };
 }
 
