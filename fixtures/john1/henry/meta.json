@@ -1,0 +1,12 @@
+{
+  "source_id": "matthew_henry",
+  "source": "Matthew Henry's Commentary on the Whole Bible",
+  "schema_version": 1,
+  "license": "Public Domain",
+  "books": [
+    {
+      "book_id": "john",
+      "book": "John"
+    }
+  ]
+}

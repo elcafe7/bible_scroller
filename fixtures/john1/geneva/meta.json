@@ -1,0 +1,18 @@
+{
+  "edition_id": "geneva1599",
+  "edition_name": "Geneva Bible (1599)",
+  "language": "en",
+  "schema_version": 1,
+  "license": "Public Domain",
+  "books": [
+    {
+      "book_id": "john",
+      "book": "John",
+      "order": 43,
+      "chapters": 1,
+      "verse_counts": [
+        51
+      ]
+    }
+  ]
+}
