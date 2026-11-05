@@ -136,24 +136,26 @@ body.mode-horizontal .henry {
 body.mode-horizontal .henry .ref { font-size: 0.55em; }
 
 /* ---------- settings page (not an overlay) ---------- */
+/* Word/Verse load surface: centered quiet card, title + passage first. */
+body.state-stopped { min-height: 100dvh; display: grid; place-items: center; }
 .chrome {
-  width: min(34rem, calc(100% - 2rem));
-  margin: max(1.5rem, env(safe-area-inset-top)) auto max(2rem, env(safe-area-inset-bottom));
-  padding: 1.35rem 1.5rem 1.25rem;
-  background: var(--panel); border: 1px solid var(--rule); border-radius: 14px;
+  width: min(30rem, calc(100% - 2rem));
+  margin: max(2rem, env(safe-area-inset-top)) auto max(2rem, env(safe-area-inset-bottom));
+  padding: 2.2rem 2rem 1.6rem;
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 18px;
   font-family: var(--ui); font-size: 0.95rem; color: var(--ink);
   box-shadow: var(--panel-shadow);
 }
-.chrome-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 0.9rem; }
-.chrome h1 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 1.35rem; letter-spacing: 0.01em; }
-.edition { margin: 0; font-size: 0.8rem; color: var(--ink-quiet); }
-.hint {
-  margin: 0 0 1rem;
-  font-size: 0.82rem; line-height: 1.45; color: var(--ink-quiet);
-}
+.chrome-head { display: grid; justify-items: center; gap: 0.3rem; margin-bottom: 1.6rem; text-align: center; }
+.chrome h1 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: clamp(2rem, 1.6rem + 1.6vw, 2.6rem); letter-spacing: 0.02em; }
+.edition { margin: 0; font-family: var(--serif); font-style: italic; font-size: 0.95rem; color: var(--ink-quiet); }
+.hint { margin: 1rem 0 0; text-align: center; font-size: 0.78rem; line-height: 1.45; color: var(--ink-quiet); opacity: 0.85; }
+.range-hint { margin: 0; font-size: 0.78rem; color: var(--ink-quiet); text-align: center; }
+.range .book-field select { font-family: var(--serif); font-size: 1.15rem; min-height: 50px; }
 fieldset { border: 0; margin: 0; padding: 0; }
 legend { padding: 0; margin-bottom: 0.45rem; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-quiet); }
-.range { display: grid; gap: 0.6rem; }
+.range { display: grid; gap: 0.75rem; }
+legend { width: 100%; text-align: center; }
 .field { display: grid; gap: 0.25rem; }
 .field > span:first-child { font-size: 0.78rem; color: var(--ink-soft); }
 .span { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
@@ -164,12 +166,11 @@ select {
   background: var(--field-bg); border: 1px solid var(--field-border); border-radius: 8px;
 }
 .cv select { min-width: 0; }
-.quick { display: flex; gap: 1.1rem; }
 .link { background: none; border: 0; padding: 0.3rem 0; min-height: 32px; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
-.options { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.8rem; margin: 1rem 0; padding-top: 1rem; border-top: 1px solid var(--rule); }
+.options { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.8rem; margin: 1.4rem 0; padding-top: 1.2rem; border-top: 1px solid var(--rule); }
 .toggle { display: flex; align-items: center; gap: 0.55rem; min-height: 44px; cursor: pointer; }
 .toggle input { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); flex-shrink: 0; }
-.henry-opt { align-items: flex-start; max-width: 22rem; }
+.henry-opt { align-items: flex-start; width: 100%; }
 .toggle-copy { display: grid; gap: 0.2rem; padding-top: 0.15rem; }
 .toggle-title { line-height: 1.25; }
 .toggle-hint { font-size: 0.78rem; line-height: 1.35; color: var(--ink-quiet); font-weight: 400; }

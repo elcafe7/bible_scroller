@@ -6,7 +6,7 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#ffffff" />
     <script>try{var t=JSON.parse(localStorage.getItem("bible_scroller.v1")||"null");document.documentElement.dataset.theme=t&&t.theme==="dark"?"dark":"light"}catch(e){document.documentElement.dataset.theme="light"}</script>
-    <title>Bible scroller</title>
+    <title>Scroll</title>
     <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body class="state-stopped mode-vertical">
@@ -21,29 +21,20 @@
 
     <section id="chrome" class="chrome" aria-label="Scroller settings">
       <header class="chrome-head">
-        <h1>Bible scroller</h1>
+        <h1>Scroll</h1>
         <p class="edition">Geneva Bible (1599)</p>
       </header>
-      <p class="hint">Start opens a full-screen scroll. Esc, Space, or a double-tap returns here.</p>
 
       <fieldset class="range">
-        <legend>Passage</legend>
+        <legend>Start at</legend>
         <label class="field book-field">
           <span>Book</span>
           <select id="book"></select>
         </label>
-        <div class="span">
-          <label class="field"><span>From</span>
-            <span class="cv"><select id="sch" aria-label="Start chapter"></select><b>:</b><select id="sv" aria-label="Start verse"></select></span>
-          </label>
-          <label class="field"><span>To</span>
-            <span class="cv"><select id="ech" aria-label="End chapter"></select><b>:</b><select id="ev" aria-label="End verse"></select></span>
-          </label>
-        </div>
-        <div class="quick">
-          <button type="button" id="chapter-only" class="link">This chapter</button>
-          <button type="button" id="whole-book" class="link">Whole book</button>
-        </div>
+        <label class="field"><span>Chapter &amp; verse</span>
+          <span class="cv"><select id="sch" aria-label="Start chapter"></select><b>:</b><select id="sv" aria-label="Start verse"></select></span>
+        </label>
+        <p class="range-hint">Reads to the end of the book, then loops.</p>
       </fieldset>
 
       <div class="options">
@@ -52,6 +43,7 @@
           <span class="toggle-copy">
             <span class="toggle-title">Matthew Henry between verses</span>
             <span class="toggle-hint">Commentary comes in chunks (often several verses), not after every verse.</span>
+            <span class="toggle-hint henry-na" id="henry-na" hidden>Matthew Henry isn’t available for this book.</span>
           </span>
         </label>
         <div class="speed" role="radiogroup" aria-label="Speed">
@@ -73,6 +65,7 @@
         <button type="button" id="play" class="primary">Start</button>
         <button type="button" id="restart">Restart</button>
       </div>
+    <p class="hint">Start opens a full-screen scroll. Esc, Space, or a double-tap returns here.</p>
     </section>
 
     <p id="notice" class="notice" role="status" aria-live="polite"></p>

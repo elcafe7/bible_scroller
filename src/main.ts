@@ -1,6 +1,7 @@
 import * as fullscreen from "./fullscreen";
 import { createLoader, DataError } from "./loader";
 import { loadPrefs, loadTheme, savePrefs, safeStorage } from "./prefs";
+import { groupBooks, startToEnd } from "./prefs";
 import { Scroller } from "./scroller";
 import { LoopCursor, resolveRange } from "./sequence";
 import type { GenevaBook, GenevaMeta, HenryBook, Prefs, ScrollMode, Speed, Theme } from "./types";
@@ -13,8 +14,8 @@ const chrome = $<HTMLElement>("chrome");
 const bookSel = $<HTMLSelectElement>("book");
 const sch = $<HTMLSelectElement>("sch");
 const sv = $<HTMLSelectElement>("sv");
-const ech = $<HTMLSelectElement>("ech");
-const ev = $<HTMLSelectElement>("ev");
+const henryNa = $<HTMLElement>("henry-na");
+let henryBooks: Set<string> | null = null;
 const henryBox = $<HTMLInputElement>("henry");
 const playBtn = $<HTMLButtonElement>("play");
 const restartBtn = $<HTMLButtonElement>("restart");
@@ -95,31 +96,22 @@ function syncPicker() {
   const mb = metaBook(bookSel.value);
   fillNums(sch, mb.chapters, +sch.value || 1);
   fillNums(sv, mb.verse_counts[+sch.value - 1] || 1, +sv.value || 1);
-  fillNums(ech, mb.chapters, +ech.value || 1);
-  if (+ech.value < +sch.value) ech.value = sch.value;
-  fillNums(ev, mb.verse_counts[+ech.value - 1] || 1, +ev.value || 1);
-  if (+ech.value === +sch.value && +ev.value < +sv.value) ev.value = sv.value;
+  updateHenryNa();
+}
+function updateHenryNa() {
+  henryNa.hidden = !henryBooks || henryBooks.has(bookSel.value);
 }
 function setPicker(r: Prefs["range"]) {
   bookSel.value = r.book_id;
   const mb = metaBook(r.book_id);
   fillNums(sch, mb.chapters, r.start.chapter);
   fillNums(sv, mb.verse_counts[r.start.chapter - 1] || 1, r.start.verse);
-  fillNums(ech, mb.chapters, r.end.chapter);
-  fillNums(ev, mb.verse_counts[r.end.chapter - 1] || 1, r.end.verse);
+  updateHenryNa();
 }
 function pickerRange(): Prefs["range"] {
-  return {
-    book_id: bookSel.value,
-    start: { chapter: +sch.value, verse: +sv.value },
-    end: { chapter: +ech.value, verse: +ev.value },
-  };
+  return startToEnd(meta!, bookSel.value, { chapter: +sch.value, verse: +sv.value });
 }
 const rangeKey = (r: Prefs["range"]) => `${r.book_id}:${r.start.chapter}:${r.start.verse}-${r.end.chapter}:${r.end.verse}`;
-function wholeChapter(ch: number) {
-  const mb = metaBook(bookSel.value);
-  setPicker({ book_id: mb.book_id, start: { chapter: ch, verse: 1 }, end: { chapter: ch, verse: mb.verse_counts[ch - 1] || 1 } });
-}
 function updatePlayLabel() {
   const dirty = rangeKey(pickerRange()) !== appliedKey;
   // Resume = same range already loaded (stopped mid-scroll); Start = fresh or dirty.
@@ -270,14 +262,8 @@ async function onRestart() {
 function wire() {
   fullscreen.init(() => stop());
 
-  bookSel.addEventListener("change", () => { wholeChapter(1); updatePlayLabel(); });
-  for (const s of [sch, sv, ech, ev]) s.addEventListener("change", () => { syncPicker(); updatePlayLabel(); });
-  $<HTMLButtonElement>("chapter-only").addEventListener("click", () => { wholeChapter(+sch.value); updatePlayLabel(); });
-  $<HTMLButtonElement>("whole-book").addEventListener("click", () => {
-    const mb = metaBook(bookSel.value);
-    setPicker({ book_id: mb.book_id, start: { chapter: 1, verse: 1 }, end: { chapter: mb.chapters, verse: mb.verse_counts[mb.chapters - 1] || 1 } });
-    updatePlayLabel();
-  });
+  bookSel.addEventListener("change", () => { setPicker(startToEnd(meta!, bookSel.value, { chapter: 1, verse: 1 })); updatePlayLabel(); });
+  for (const s of [sch, sv]) s.addEventListener("change", () => { syncPicker(); updatePlayLabel(); });
   henryBox.addEventListener("change", () => {
     prefs.henry = henryBox.checked;
     persist();
@@ -353,7 +339,16 @@ async function boot() {
   }
   $<HTMLElement>("boot").remove();
   const sorted = [...meta.books].sort((a, b) => a.order - b.order);
-  bookSel.replaceChildren(...sorted.map((b) => new Option(b.book, b.book_id)));
+  bookSel.replaceChildren(...groupBooks(sorted).map(([label, bs]) => {
+    const g = document.createElement("optgroup");
+    g.label = label;
+    g.append(...bs.map((b) => new Option(b.book, b.book_id)));
+    return g;
+  }));
+  void loader.loadHenryMeta().then((hm) => {
+    henryBooks = hm ? new Set(hm.books.map((b) => b.book_id)) : new Set();
+    updateHenryNa();
+  });
   prefs = loadPrefs(storage, meta);
   setPicker(prefs.range);
   henryBox.checked = prefs.henry;

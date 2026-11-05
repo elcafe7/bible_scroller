@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createLoader } from "../src/loader";
-import { defaultPrefs, loadPrefs, loadTheme, PREFS_KEY, safeStorage, savePrefs, type KV } from "../src/prefs";
+import { defaultPrefs, groupBooks, startToEnd, loadPrefs, loadTheme, PREFS_KEY, safeStorage, savePrefs, type KV } from "../src/prefs";
 import { onePass, resolveRange } from "../src/sequence";
 import { fsFetch } from "./helpers";
 
@@ -53,7 +53,7 @@ describe("preferences", async () => {
     const s = mem({ [PREFS_KEY]: JSON.stringify({ range: { book_id: "genesis" }, henry: "yes", speed: "ludicrous" }) });
     expect(loadPrefs(s, meta)).toEqual(defaultPrefs(meta));
     const ok = mem({ [PREFS_KEY]: JSON.stringify({ range: { book_id: "john", start: { chapter: 1, verse: 3 }, end: { chapter: 1, verse: 9 } }, henry: true, speed: "slow" }) });
-    expect(loadPrefs(ok, meta)).toMatchObject({ henry: true, speed: "slow", range: { start: { verse: 3 }, end: { verse: 9 } } });
+    expect(loadPrefs(ok, meta)).toMatchObject({ henry: true, speed: "slow", range: { start: { verse: 3 }, end: startToEnd(meta, "john", { chapter: 1, verse: 3 }).end } });
   });
 
   it("round-trips and survives a throwing store", () => {
@@ -84,5 +84,21 @@ describe("missing Henry file", () => {
     const pass = onePass(verses, henry, true);
     expect(pass).toHaveLength(verses.length);
     expect(pass.every((i) => i.kind === "verse")).toBe(true);
+  });
+
+  it("start-only: stored end is ignored and recomputed to end of book", async () => {
+    const s = mem({ [PREFS_KEY]: JSON.stringify({ range: { book_id: "john", start: { chapter: 1, verse: 5 }, end: { chapter: 1, verse: 2 } } }) });
+    const meta = await loader.loadGenevaMeta();
+    const r = loadPrefs(s, meta).range;
+    const mb = meta.books.find((b) => b.book_id === "john")!;
+    expect(r.start).toEqual({ chapter: 1, verse: 5 });
+    expect(r.end).toEqual({ chapter: mb.chapters, verse: mb.verse_counts[mb.chapters - 1] });
+  });
+
+  it("groups books Word-style: OT / NT / Apocrypha, empty groups dropped", () => {
+    const b = (id: string, order: number) => ({ book_id: id, book: id, order, chapters: 1, verse_counts: [1] });
+    expect(groupBooks([b("john", 43), b("gen", 1)]).map(([l, bs]) => [l, bs.map((x) => x.book_id)]))
+      .toEqual([["Old Testament", ["gen"]], ["New Testament", ["john"]]]);
+    expect(groupBooks([b("tobit", 67), b("gen", 1)]).map(([l]) => l)).toEqual(["Old Testament", "Apocrypha"]);
   });
 });

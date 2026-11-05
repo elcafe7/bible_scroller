@@ -1,4 +1,4 @@
-import type { GenevaMeta, Prefs, ScrollMode, Speed, Theme } from "./types";
+import type { GenevaMeta, GenevaMetaBook, Prefs, VersePoint, ScrollMode, Speed, Theme } from "./types";
 
 export const PREFS_KEY = "bible_scroller.v1";
 const SPEEDS: Speed[] = ["slow", "medium", "fast"];
@@ -35,11 +35,28 @@ export function safeStorage(): KV {
   }
 }
 
+/** Start point through the last verse of that book (implicit loop end). */
+export function startToEnd(meta: GenevaMeta, bookId: string, start: VersePoint): Prefs["range"] {
+  const mb = meta.books.find((b) => b.book_id === bookId)!;
+  return { book_id: mb.book_id, start, end: { chapter: mb.chapters, verse: mb.verse_counts[mb.chapters - 1] || 1 } };
+}
+
+/** Word-style book menu groups: OT (order 1-39), NT (40-66), Apocrypha (anything else). Empty groups dropped. */
+export function groupBooks(books: GenevaMetaBook[]): [string, GenevaMetaBook[]][] {
+  const s = [...books].sort((a, b) => a.order - b.order);
+  const g: [string, GenevaMetaBook[]][] = [
+    ["Old Testament", s.filter((b) => b.order >= 1 && b.order <= 39)],
+    ["New Testament", s.filter((b) => b.order >= 40 && b.order <= 66)],
+    ["Apocrypha", s.filter((b) => !(b.order >= 1 && b.order <= 66))],
+  ];
+  return g.filter(([, bs]) => bs.length);
+}
+
 /** First-run default: John 1 (or chapter 1 of the first book if John is absent), Henry off, medium. */
 export function defaultPrefs(meta: GenevaMeta): Prefs {
   const mb = meta.books.find((b) => b.book_id === "john") ?? [...meta.books].sort((a, b) => a.order - b.order)[0];
   return {
-    range: { book_id: mb.book_id, start: { chapter: 1, verse: 1 }, end: { chapter: 1, verse: mb.verse_counts[0] || 1 } },
+    range: startToEnd(meta, mb.book_id, { chapter: 1, verse: 1 }),
     henry: false,
     speed: "medium",
     theme: "light",
@@ -47,16 +64,16 @@ export function defaultPrefs(meta: GenevaMeta): Prefs {
   };
 }
 
-function validRange(meta: GenevaMeta, r: unknown): r is Prefs["range"] {
-  if (!r || typeof r !== "object") return false;
-  const x = r as Prefs["range"];
+/** Start-only: a valid stored start is kept; any stored end is ignored and recomputed to end of book. */
+function migrateRange(meta: GenevaMeta, r: unknown): Prefs["range"] | null {
+  if (!r || typeof r !== "object") return null;
+  const x = r as Partial<Prefs["range"]>;
   const mb = meta.books.find((b) => b.book_id === x.book_id);
-  if (!mb || !x.start || !x.end) return false;
-  const ok = (p: { chapter: number; verse: number }) =>
-    Number.isInteger(p.chapter) && Number.isInteger(p.verse) && p.chapter >= 1 && p.chapter <= mb.chapters &&
+  const p = x.start;
+  if (!mb || !p) return null;
+  const ok = Number.isInteger(p.chapter) && Number.isInteger(p.verse) && p.chapter >= 1 && p.chapter <= mb.chapters &&
     p.verse >= 1 && p.verse <= (mb.verse_counts[p.chapter - 1] ?? 0);
-  const order = x.start.chapter - x.end.chapter || x.start.verse - x.end.verse;
-  return ok(x.start) && ok(x.end) && order <= 0;
+  return ok ? startToEnd(meta, mb.book_id, { chapter: p.chapter, verse: p.verse }) : null;
 }
 
 /** Corrupt or stale prefs fall back field by field to first-run defaults; never throws. */
@@ -72,7 +89,7 @@ export function loadPrefs(storage: KV, meta: GenevaMeta): Prefs {
   if (!raw || typeof raw !== "object") return d;
   const p = raw as Partial<Prefs>;
   return {
-    range: validRange(meta, p.range) ? p.range : d.range,
+    range: migrateRange(meta, p.range) ?? d.range,
     henry: typeof p.henry === "boolean" ? p.henry : d.henry,
     speed: SPEEDS.includes(p.speed as Speed) ? (p.speed as Speed) : d.speed,
     theme: THEMES.includes(p.theme as Theme) ? (p.theme as Theme) : d.theme,
