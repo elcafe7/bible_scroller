@@ -1,4 +1,4 @@
-import { canonBooks, isProtestantBookId } from "./canon";
+import { canonBooks, groupBooks as groupCanonBooks } from "./canon";
 import type { Commentary, FontSize, GenevaMeta, GenevaMetaBook, Prefs, VersePoint, ScrollMode, Speed, Theme } from "./types";
 
 export const PREFS_KEY = "bible_scroller.v1";
@@ -34,13 +34,13 @@ export function startToEnd(meta: GenevaMeta, bookId: string, start: VersePoint):
   return { book_id: mb.book_id, start, end: { chapter: mb.chapters, verse: mb.verse_counts[mb.chapters - 1] || 1 } };
 }
 
-/** Word-style OT/NT only — Apocrypha never listed. */
+/** Word-style OT / NT / Apocrypha optgroups; empty groups dropped. */
 export function groupBooks(books: GenevaMetaBook[]): [string, GenevaMetaBook[]][] {
-  const protestant = books.filter((b) => isProtestantBookId(b.book_id));
-  const s = [...protestant].sort((a, b) => a.order - b.order);
+  const { ot, nt, apocrypha } = groupCanonBooks(books);
   return ([
-    ["Old Testament", s.filter((b) => b.order >= 1 && b.order <= 39)],
-    ["New Testament", s.filter((b) => b.order >= 40 && b.order <= 66)],
+    ["Old Testament", ot],
+    ["New Testament", nt],
+    ["Apocrypha", apocrypha],
   ] as [string, GenevaMetaBook[]][]).filter(([, bs]) => bs.length);
 }
 
@@ -53,7 +53,7 @@ export function defaultPrefs(meta: GenevaMeta): Prefs {
 function migrateRange(meta: GenevaMeta, r: unknown): Prefs["range"] | null {
   if (!r || typeof r !== "object") return null;
   const x = r as Partial<Prefs["range"]>;
-  if (typeof x.book_id !== "string" || !isProtestantBookId(x.book_id)) return null;
+  if (typeof x.book_id !== "string") return null;
   const mb = canonBooks(meta).find((b) => b.book_id === x.book_id);
   const p = x.start;
   if (!mb || !p) return null;

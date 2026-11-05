@@ -82,12 +82,12 @@ describe("preferences", async () => {
     expect(JSON.parse(s.getItem(PREFS_KEY)!).range).toEqual({ book_id: "john", start: { chapter: 1, verse: 5 } });
   });
 
-  it("groups books Word-style OT/NT only — Apocrypha excluded", () => {
+  it("groups books Word-style OT / NT / Apocrypha, empty groups dropped", () => {
     const b = (id: string, order: number) => ({ book_id: id, book: id, order, chapters: 1, verse_counts: [1] });
     expect(groupBooks([b("john", 43), b("genesis", 1)]).map(([l, bs]) => [l, bs.map((x) => x.book_id)]))
       .toEqual([["Old Testament", ["genesis"]], ["New Testament", ["john"]]]);
     expect(groupBooks([b("tobit", 67), b("genesis", 1)]).map(([l, bs]) => [l, bs.map((x) => x.book_id)]))
-      .toEqual([["Old Testament", ["genesis"]]]);
+      .toEqual([["Old Testament", ["genesis"]], ["Apocrypha", ["tobit"]]]);
   });
 
   it("commentary + font size: legacy henry migrates, invalid falls back, round-trips", () => {

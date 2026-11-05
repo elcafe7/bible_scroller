@@ -196,31 +196,25 @@ function setMode(m: ScrollMode) {
   else updatePlayLabel();
 }
 
-async function ensureBooks(): Promise<Map<string, GenevaBook>> {
-  const list = canonBooks(meta!);
-  await Promise.all(list.map(async (mb) => {
-    if (bookCache.has(mb.book_id)) return;
-    bookCache.set(mb.book_id, await loader.loadGenevaBook(mb.book_id));
-  }));
+async function ensureBooks(bookId: string): Promise<Map<string, GenevaBook>> {
+  if (!bookCache.has(bookId)) bookCache.set(bookId, await loader.loadGenevaBook(bookId));
   return bookCache;
 }
-async function ensureCommentaryMap(): Promise<Map<string, HenryBook | null>> {
+async function ensureCommentaryMap(bookId: string): Promise<Map<string, HenryBook | null>> {
   const c = prefs.commentary;
   const map = new Map<string, HenryBook | null>();
   if (c === "none") return map;
-  const list = canonBooks(meta!);
-  await Promise.all(list.map(async (mb) => {
-    const k = `${c}:${mb.book_id}`;
-    if (!commentaryCache.has(k)) commentaryCache.set(k, await loader.loadCommentaryBook(c, mb.book_id));
-    map.set(mb.book_id, commentaryCache.get(k)!);
-  }));
+  const k = `${c}:${bookId}`;
+  if (!commentaryCache.has(k)) commentaryCache.set(k, await loader.loadCommentaryBook(c, bookId));
+  map.set(bookId, commentaryCache.get(k)!);
   return map;
 }
 async function ensureCommentary() {
   if (!cursor || prefs.commentary === "none") return;
-  const map = await ensureCommentaryMap();
+  const bookId = prefs.range.book_id;
+  const map = await ensureCommentaryMap(bookId);
   cursor.setHenryBook(map);
-  if (!map.get(prefs.range.book_id) && !henryNoticeShown) {
+  if (!map.get(bookId) && !henryNoticeShown) {
     henryNoticeShown = true;
     showNotice("Commentary data not available.");
   }
@@ -231,13 +225,13 @@ async function applyStart(force = false): Promise<boolean> {
   const key = startKey(r);
   if (!force && key === appliedKey && cursor) return true;
   try {
-    const books = await ensureBooks();
+    const books = await ensureBooks(r.book_id);
     const verses = resolveFromStart(meta!, books, { book_id: r.book_id, ...r.start });
     if (!verses.length) throw new DataError("range_invalid", "No verses in that passage.");
     clearError();
     prefs.range = { book_id: r.book_id, start: r.start };
     persist();
-    const commentary = prefs.commentary !== "none" ? await ensureCommentaryMap() : null;
+    const commentary = prefs.commentary !== "none" ? await ensureCommentaryMap(r.book_id) : null;
     cursor = new LoopCursor(verses, commentary);
     appliedKey = key;
     henryNoticeShown = false;

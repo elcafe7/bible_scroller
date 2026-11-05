@@ -14,17 +14,36 @@ export const PROTESTANT_BOOK_IDS: readonly string[] = [
   "jude", "revelation",
 ];
 const PROTESTANT = new Set(PROTESTANT_BOOK_IDS);
+
 export function isProtestantBookId(id: string): boolean { return PROTESTANT.has(id); }
+
+/** All meta books in edition order (Protestant + Apocrypha when present). */
 export function canonBooks(meta: GenevaMeta): GenevaMetaBook[] {
-  const byId = new Map(meta.books.filter((b) => isProtestantBookId(b.book_id)).map((b) => [b.book_id, b]));
-  const out: GenevaMetaBook[] = [];
-  for (const id of PROTESTANT_BOOK_IDS) { const b = byId.get(id); if (b) out.push(b); }
-  return out;
+  return [...meta.books].sort((a, b) => a.order - b.order);
 }
+
 export function isOldTestament(bookId: string): boolean {
   const i = PROTESTANT_BOOK_IDS.indexOf(bookId);
   return i >= 0 && i <= PROTESTANT_BOOK_IDS.indexOf("malachi");
 }
+
+/** Word-style groups; Apocrypha = any book id not in the Protestant 66. */
+export function groupBooks(books: GenevaMetaBook[]): {
+  ot: GenevaMetaBook[];
+  nt: GenevaMetaBook[];
+  apocrypha: GenevaMetaBook[];
+} {
+  const ot: GenevaMetaBook[] = [];
+  const nt: GenevaMetaBook[] = [];
+  const apocrypha: GenevaMetaBook[] = [];
+  for (const b of [...books].sort((a, c) => a.order - c.order)) {
+    if (!isProtestantBookId(b.book_id)) apocrypha.push(b);
+    else if (isOldTestament(b.book_id)) ot.push(b);
+    else nt.push(b);
+  }
+  return { ot, nt, apocrypha };
+}
+
 export const SAMPLE_STARTS: readonly { label: string; book_id: string; start: VersePoint }[] = [
   { label: "Genesis 1:1", book_id: "genesis", start: { chapter: 1, verse: 1 } },
   { label: "Psalm 23:1", book_id: "psalms", start: { chapter: 23, verse: 1 } },
@@ -36,23 +55,23 @@ export const SAMPLE_STARTS: readonly { label: string; book_id: string; start: Ve
   { label: "1 Corinthians 13:1", book_id: "1corinthians", start: { chapter: 13, verse: 1 } },
   { label: "Revelation 21:1", book_id: "revelation", start: { chapter: 21, verse: 1 } },
 ];
+
 export function sampleKey(bookId: string, start: VersePoint): string {
   return `${bookId}:${start.chapter}:${start.verse}`;
 }
+
+/** Start verse through the last verse of that book only (LoopCursor wraps the sequence). */
 export function resolveFromStart(
   meta: GenevaMeta, books: Map<string, GenevaBook>,
   start: { book_id: string; chapter: number; verse: number },
 ): VerseRef[] {
-  const list = canonBooks(meta);
-  if (!list.some((b) => b.book_id === start.book_id)) throw new DataError("range_invalid", "That passage is outside this book.");
-  const ordered: VerseRef[] = [];
-  for (const mb of list) {
-    const book = books.get(mb.book_id);
-    if (!book) continue;
-    ordered.push(...resolveRange(meta, book, { book_id: mb.book_id }));
-  }
-  if (!ordered.length) throw new DataError("range_invalid", "No verses in that passage.");
-  const i = ordered.findIndex((v) => v.book_id === start.book_id && v.chapter === start.chapter && v.verse === start.verse);
-  if (i < 0) throw new DataError("range_invalid", "That passage is outside this book.");
-  return [...ordered.slice(i), ...ordered.slice(0, i)];
+  const mb = canonBooks(meta).find((b) => b.book_id === start.book_id);
+  if (!mb) throw new DataError("range_invalid", "That passage is outside this book.");
+  const book = books.get(start.book_id);
+  if (!book) throw new DataError("book_missing", `Book data not found: ${start.book_id}.`, start.book_id);
+  return resolveRange(meta, book, {
+    book_id: start.book_id,
+    start: { chapter: start.chapter, verse: start.verse },
+    end: { chapter: mb.chapters, verse: mb.verse_counts[mb.chapters - 1] || 1 },
+  });
 }
