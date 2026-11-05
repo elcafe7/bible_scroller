@@ -168,7 +168,11 @@ select {
 .link { background: none; border: 0; padding: 0.3rem 0; min-height: 32px; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .options { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.8rem; margin: 1rem 0; padding-top: 1rem; border-top: 1px solid var(--rule); }
 .toggle { display: flex; align-items: center; gap: 0.55rem; min-height: 44px; cursor: pointer; }
-.toggle input { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); }
+.toggle input { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); flex-shrink: 0; }
+.henry-opt { align-items: flex-start; max-width: 22rem; }
+.toggle-copy { display: grid; gap: 0.2rem; padding-top: 0.15rem; }
+.toggle-title { line-height: 1.25; }
+.toggle-hint { font-size: 0.78rem; line-height: 1.35; color: var(--ink-quiet); font-weight: 400; }
 .speed, .theme, .mode { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 3px; }
 .speed button, .theme button, .mode button { min-height: 38px; padding: 0 0.85rem; border: 0; border-radius: 999px; background: none; color: var(--ink-soft); cursor: pointer; }
 .speed button[aria-checked="true"], .theme button[aria-checked="true"], .mode button[aria-checked="true"] { background: var(--surface-hover); color: var(--ink); }
