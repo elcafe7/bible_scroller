@@ -22,7 +22,7 @@ function copyData(): Plugin {
     name: "copy-data",
     apply: "build",
     closeBundle() {
-      const root = __dirname;
+      const root = import.meta.dirname;
       const full = resolve(root, "data");
       const src = existsSync(resolve(full, "geneva/meta.json")) ? full : resolve(root, "fixtures/john1");
       const dest = resolve(root, "dist/data");
@@ -42,7 +42,7 @@ export default defineConfig({
     modulePreload: false,
     cssCodeSplit: false,
     rollupOptions: {
-      output: { format: "iife", inlineDynamicImports: true },
+      output: { format: "iife" },
     },
   },
 });

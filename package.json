@@ -9,7 +9,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "build-data": "node --no-warnings scripts/build-data.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "pack": "npm run build && node scripts/pack-zip.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
