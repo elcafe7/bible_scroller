@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createLoader } from "../src/loader";
-import { defaultPrefs, loadPrefs, loadTheme, PREFS_KEY, safeStorage, savePrefs, type KV } from "../src/prefs";
+import { defaultPrefs, groupBooks, loadPrefs, loadTheme, PREFS_KEY, safeStorage, savePrefs, type KV } from "../src/prefs";
 import { onePass, resolveRange } from "../src/sequence";
 import { fsFetch } from "./helpers";
 
@@ -15,13 +15,28 @@ const mem = (init: Record<string, string> = {}): KV & { m: Map<string, string> }
 describe("preferences", async () => {
   const meta = await loader.loadGenevaMeta();
 
-  it("first-run defaults: John 1, Henry off, medium", () => {
-    expect(loadPrefs(mem(), meta)).toEqual({
-      range: { book_id: "john", start: { chapter: 1, verse: 1 }, end: { chapter: 1, verse: 51 } },
-      henry: false,
+  it("first-run defaults: John 3:16 when available, else John 1:1; commentary none, medium", () => {
+    const d = loadPrefs(mem(), meta);
+    const john = meta.books.find((b) => b.book_id === "john");
+    const expectStart = john && john.chapters >= 3 && (john.verse_counts[2] ?? 0) >= 16
+      ? { chapter: 3, verse: 16 } : { chapter: 1, verse: 1 };
+    expect(d).toEqual({
+      range: { book_id: "john", start: expectStart },
+      edition: "geneva1599",
+      commentary: "none",
+      fontSize: "m",
       speed: "medium",
       theme: "light",
+      mode: "vertical",
     });
+  });
+
+  it("mode defaults to vertical, corrupt → vertical, toggle persists", () => {
+    expect(defaultPrefs(meta).mode).toBe("vertical");
+    expect(loadPrefs(mem({ [PREFS_KEY]: JSON.stringify({ mode: "diagonal" }) }), meta).mode).toBe("vertical");
+    const st = mem();
+    savePrefs(st, { ...defaultPrefs(meta), mode: "horizontal" });
+    expect(loadPrefs(st, meta).mode).toBe("horizontal");
   });
 
   it("theme defaults to light, corrupt → light, toggle persists", () => {
@@ -40,16 +55,17 @@ describe("preferences", async () => {
     expect(loadPrefs(mem({ [PREFS_KEY]: "42" }), meta)).toEqual(defaultPrefs(meta));
   });
 
-  it("invalid fields are replaced individually", () => {
+  it("invalid fields are replaced individually; legacy henry migrates", () => {
     const s = mem({ [PREFS_KEY]: JSON.stringify({ range: { book_id: "genesis" }, henry: "yes", speed: "ludicrous" }) });
     expect(loadPrefs(s, meta)).toEqual(defaultPrefs(meta));
     const ok = mem({ [PREFS_KEY]: JSON.stringify({ range: { book_id: "john", start: { chapter: 1, verse: 3 }, end: { chapter: 1, verse: 9 } }, henry: true, speed: "slow" }) });
-    expect(loadPrefs(ok, meta)).toMatchObject({ henry: true, speed: "slow", range: { start: { verse: 3 }, end: { verse: 9 } } });
+    expect(loadPrefs(ok, meta)).toMatchObject({ commentary: "henry", speed: "slow", range: { book_id: "john", start: { verse: 3 } } });
+    expect(loadPrefs(ok, meta).range).not.toHaveProperty("end");
   });
 
   it("round-trips and survives a throwing store", () => {
     const s = mem();
-    const p = { ...defaultPrefs(meta), henry: true, speed: "fast" as const };
+    const p = { ...defaultPrefs(meta), commentary: "henry" as const, speed: "fast" as const };
     savePrefs(s, p);
     expect(loadPrefs(s, meta)).toEqual(p);
     const broken: KV = { getItem: () => { throw new Error("SecurityError"); }, setItem: () => { throw new Error("QuotaExceeded"); } };
@@ -58,9 +74,34 @@ describe("preferences", async () => {
   });
 
   it("safeStorage falls back to memory when localStorage is unavailable", () => {
-    const s = safeStorage(); // no window in node
+    const s = safeStorage();
     s.setItem("a", "1");
     expect(s.getItem("a")).toBe("1");
+  });
+
+  it("start-only: stored end is ignored and dropped on save", () => {
+    const s = mem({ [PREFS_KEY]: JSON.stringify({ range: { book_id: "john", start: { chapter: 1, verse: 5 }, end: { chapter: 1, verse: 2 } } }) });
+    const r = loadPrefs(s, meta).range;
+    expect(r).toEqual({ book_id: "john", start: { chapter: 1, verse: 5 } });
+    savePrefs(s, loadPrefs(s, meta));
+    expect(JSON.parse(s.getItem(PREFS_KEY)!).range).toEqual({ book_id: "john", start: { chapter: 1, verse: 5 } });
+  });
+
+  it("groups books Word-style OT / NT / Apocrypha, empty groups dropped", () => {
+    const b = (id: string, order: number) => ({ book_id: id, book: id, order, chapters: 1, verse_counts: [1] });
+    expect(groupBooks([b("john", 43), b("genesis", 1)]).map(([l, bs]) => [l, bs.map((x) => x.book_id)]))
+      .toEqual([["Old Testament", ["genesis"]], ["New Testament", ["john"]]]);
+    expect(groupBooks([b("tobit", 67), b("genesis", 1)]).map(([l, bs]) => [l, bs.map((x) => x.book_id)]))
+      .toEqual([["Old Testament", ["genesis"]], ["Apocrypha", ["tobit"]]]);
+  });
+
+  it("commentary + font size: legacy henry migrates, invalid falls back, round-trips", () => {
+    expect(loadPrefs(mem({ [PREFS_KEY]: JSON.stringify({ henry: true }) }), meta).commentary).toBe("henry");
+    expect(loadPrefs(mem({ [PREFS_KEY]: JSON.stringify({ henry: false }) }), meta).commentary).toBe("none");
+    expect(loadPrefs(mem({ [PREFS_KEY]: JSON.stringify({ commentary: "barth", fontSize: "huge" }) }), meta)).toMatchObject({ commentary: "none", fontSize: "m" });
+    const st = mem();
+    savePrefs(st, { ...defaultPrefs(meta), commentary: "calvin", fontSize: "xl" });
+    expect(loadPrefs(st, meta)).toMatchObject({ commentary: "calvin", fontSize: "xl" });
   });
 });
 
