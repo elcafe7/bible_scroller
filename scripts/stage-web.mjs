@@ -2,7 +2,7 @@
 // Stage the built dist/ as a public static web app under a URL prefix (default /scroll/ on apocalypse.press).
 // Usage: npm run build && node scripts/stage-web.mjs <outDir> [/scroll/]
 // Writes <outDir>/index.html, assets/, data/, .htaccess (normal caching; no ?v= query, no demo no-cache).
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join, resolve } from "node:path";
 
@@ -28,18 +28,12 @@ cpSync(join(DIST, "data"), join(out, "data"), { recursive: true });
 if (!existsSync(join(DIST, "LICENSE"))) { console.error("stage-web: dist/LICENSE missing; rebuild"); process.exit(1); }
 cpSync(join(DIST, "LICENSE"), join(out, "LICENSE"));
 
-// Offline download linked from the welcome card + footer: ./bible_scroller-<version>.zip (+ SHA256SUMS).
+// Offline download linked from the welcome card + footer: the public GitHub release zip (not hosted here).
 const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
-const zipName = `bible_scroller-${version}.zip`;
-const zipPath = join(ROOT, zipName);
-if (!html.includes(`./${zipName}`)) { console.error(`stage-web: index.html does not link ./${zipName}`); process.exit(1); }
-if (!existsSync(zipPath)) { console.error(`stage-web: ${zipName} missing; run npm run pack first`); process.exit(1); }
-if (statSync(zipPath).mtimeMs < statSync(join(DIST, "index.html")).mtimeMs - 60_000) {
-  console.error(`stage-web: ${zipName} is older than dist/; run npm run pack again`); process.exit(1);
+const zipUrl = `https://github.com/elcafe7/bible_scroller/releases/download/v${version}/bible_scroller-${version}.zip`;
+if (html.split(`href="${zipUrl}"`).length - 1 !== 2) {
+  console.error(`stage-web: index.html must link ${zipUrl} from the card and the footer`); process.exit(1);
 }
-const zipBuf = readFileSync(zipPath);
-writeFileSync(join(out, zipName), zipBuf);
-writeFileSync(join(out, "SHA256SUMS"), `${createHash("sha256").update(zipBuf).digest("hex")}  ${zipName}\n`);
 
 const csp = [
   "default-src 'self'",
@@ -59,7 +53,6 @@ DirectorySlash On
 AddType application/json .json
 AddType text/javascript .js
 AddType text/css .css
-AddType application/zip .zip
 AddDefaultCharset utf-8
 AddCharset utf-8 .json .js .css .html
 
@@ -76,9 +69,9 @@ AddCharset utf-8 .json .js .css .html
   RewriteRule ^ - [L]
 </IfModule>
 
-<FilesMatch "^(SHA256SUMS|LICENSE)$">
+<Files "LICENSE">
   ForceType text/plain
-</FilesMatch>
+</Files>
 
 <IfModule mod_headers.c>
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
@@ -94,18 +87,13 @@ AddCharset utf-8 .json .js .css .html
   <FilesMatch "\\.json$">
     Header set Cache-Control "public, max-age=86400"
   </FilesMatch>
-  # Offline download (versioned name; replaced only on a new release): save as a file, cache one day.
-  <FilesMatch "\\.zip$">
-    Header set Content-Disposition "attachment"
+  <Files "LICENSE">
     Header set Cache-Control "public, max-age=86400"
-  </FilesMatch>
-  <FilesMatch "^(SHA256SUMS|LICENSE)$">
-    Header set Cache-Control "public, max-age=86400"
-  </FilesMatch>
+  </Files>
   # The HTML shell revalidates so a new build's asset names are picked up.
   <FilesMatch "^index\\.html$">
     Header set Cache-Control "no-cache"
   </FilesMatch>
 </IfModule>
 `);
-console.log(`stage-web: ${out} for ${base} (inline script hashes: ${inline.length}; ${zipName} ${(zipBuf.length / 1048576).toFixed(1)} MB)`);
+console.log(`stage-web: ${out} for ${base} (inline script hashes: ${inline.length}; offline link ${zipUrl})`);

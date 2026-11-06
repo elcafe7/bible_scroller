@@ -78,7 +78,7 @@ The zip unpacks to one `bible_scroller/` folder with `index.html`, `assets/`, `d
 npm run stage-web -- /path/to/out/scroll /scroll/
 ```
 
-Packs (build + zip), then writes `index.html`, `assets/`, `data/`, `LICENSE`, `bible_scroller-<version>.zip`, `SHA256SUMS`, and an `.htaccess` for a static app under `/scroll/` (apocalypse.press). Normal caching: hashed bundles immutable for a year, data JSON and the zip one day, `index.html` revalidates. The welcome card's offline sentence and a footer line link `./bible_scroller-<version>.zip` (relative, so it works under `/scroll/`; the GitHub repo is private, so the public download is this site-hosted copy). A CSP allows only same-origin plus the inline theme script by hash (and Cloudflare Insights). No PHP. Deploying is a separate, approved step.
+Builds, then writes `index.html`, `assets/`, `data/`, `LICENSE`, and an `.htaccess` for a static app under `/scroll/` (apocalypse.press). Normal caching: hashed bundles immutable for a year, data JSON and LICENSE one day, `index.html` revalidates. The welcome card's offline sentence and a footer line link the public GitHub release zip (`https://github.com/elcafe7/bible_scroller/releases/download/v<version>/bible_scroller-<version>.zip`); upload it with `npm run pack` + the release before staging a new version. A CSP allows only same-origin plus the inline theme script by hash (and Cloudflare Insights). No PHP. Deploying is a separate, approved step.
 
 ## Quality checks
 

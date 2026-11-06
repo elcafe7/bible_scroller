@@ -13,15 +13,13 @@ describe("offline download link", () => {
     expect(links).toHaveLength(2);
     for (const [, attrs, text] of links) {
       expect(text).toBe(LINE);
-      expect(attrs).toContain('href="./%OFFLINE_ZIP%"');
-      expect(attrs).toMatch(/\bdownload\b/);
-      expect(attrs).not.toContain("github.com");
+      expect(attrs).toContain('href="%OFFLINE_ZIP_URL%"');
     }
     expect(html).toContain('<p class="offline-dl" data-offline-line>');
   });
-  it("vite fills the placeholder with the versioned zip name", () => {
-    const cfg = readFileSync(resolve(ROOT, "vite.config.ts"), "utf8");
-    expect(cfg).toContain('replaceAll("%OFFLINE_ZIP%", `bible_scroller-${version}.zip`)');
+  it("vite fills the placeholder with the public GitHub release zip", async () => {
+    const { OFFLINE_ZIP_URL } = await import("../vite.config");
+    expect(OFFLINE_ZIP_URL).toBe(`https://github.com/elcafe7/bible_scroller/releases/download/v${version}/bible_scroller-${version}.zip`);
     expect(version).toBe("0.1.0");
   });
   it("footer credits line links the MIT LICENSE shipped next to index.html", () => {
