@@ -7,9 +7,9 @@ export interface EditionInfo {
 }
 
 export const EDITIONS: readonly EditionInfo[] = [
-  { id: "geneva1599", dir: "geneva", short: "Geneva", name: "Geneva Bible (1599)" },
+  { id: "geneva1599", dir: "geneva", short: "Geneva 1599", name: "Geneva Bible (1599)" },
   { id: "kj16", dir: "kj16", short: "KJV 1611", name: "King James Version (1611 Original)" },
-  { id: "kjv", dir: "kjv", short: "KJV", name: "King James Version (Oxford 1769)" },
+  { id: "kjv", dir: "kjv", short: "KJV Oxford 1769", name: "King James Version (Oxford 1769)" },
 ];
 
 export const DEFAULT_EDITION_ID = "geneva1599";

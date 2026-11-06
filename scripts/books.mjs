@@ -64,7 +64,7 @@ export const EDITIONS = [
     id: "geneva1599",
     dir: "geneva",
     name: "Geneva Bible (1599)",
-    short: "Geneva",
+    short: "Geneva 1599",
     dbEnv: "BIBLE_SCROLLER_GENEVA_DB",
     dbRel: "bible_versions/gen.db",
     keyStyle: "abbr", // gen.db: gen:Tob:1:1
@@ -90,7 +90,7 @@ export const EDITIONS = [
     id: "kjv",
     dir: "kjv",
     name: "King James Version (Oxford 1769)",
-    short: "KJV",
+    short: "KJV Oxford 1769",
     dbEnv: "BIBLE_SCROLLER_KJV_DB",
     dbRel: "bible_versions/kjv.db",
     keyStyle: "name",
