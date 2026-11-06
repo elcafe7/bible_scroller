@@ -70,6 +70,14 @@ The zip unpacks to one `bible_scroller/` folder with `index.html`, `assets/`, `d
 - **Welcome card:** first visit shows a short welcome card; Continue, ✕, Esc, or a backdrop click dismisses it and stores `bible_scroller.welcome-seen=1` so it does not show again in that browser.
 - Settings are saved in this browser's localStorage (`bible_scroller.v1`) only. The app still runs if storage is blocked.
 
+## Stage the public web copy: `npm run stage-web`
+
+```bash
+npm run stage-web -- /path/to/out/scroll /scroll/
+```
+
+Builds, then writes `index.html`, `assets/`, `data/`, and an `.htaccess` for a static app under `/scroll/` (apocalypse.press). Normal caching: hashed bundles immutable for a year, data JSON one day, `index.html` revalidates. A CSP allows only same-origin plus the inline theme script by hash (and Cloudflare Insights). No PHP. Deploying is a separate, approved step.
+
 ## Quality checks
 
 - `npm run build` runs `tsc --noEmit` before Vite; `npm test` runs vitest (including a multi-book smoke across OT / NT / Apocrypha and edition switches when `data/` is present).
