@@ -67,6 +67,7 @@ The zip unpacks to one `bible_scroller/` folder with `index.html`, `assets/`, `d
 - **Speed:** Very Slow, Slow, Medium (default), Fast. Vertical is 30 / 48 / 80 / 130 lines a minute; the ticker uses 300 / 480 / 900 / 1620 characters a minute.
 - **Text size:** S / M / L / XL. In ticker mode the line is a share of viewport height (3 / 4.25 / 5.75 / 7.5 vh).
 - **Commentary:** No commentary (default), Matthew Henry, or Calvin. A note follows the last verse it covers in your range (each section once per loop); in ticker mode commentary runs on a second line after the verses. If the chosen commentary has no file for a book, the settings page says so and verses keep scrolling.
+- **Welcome card:** first visit shows a short welcome card; Continue, ✕, Esc, or a backdrop click dismisses it and stores `bible_scroller.welcome-seen=1` so it does not show again in that browser.
 - Settings are saved in this browser's localStorage (`bible_scroller.v1`) only. The app still runs if storage is blocked.
 
 ## Quality checks

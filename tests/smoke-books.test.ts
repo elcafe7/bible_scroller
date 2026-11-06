@@ -96,6 +96,19 @@ describe.skipIf(!hasFull)("smoke: full app boot in the DOM (picker + edition swi
     await vi.waitFor(() => expect(document.getElementById("boot")).toBeNull(), { timeout: 5000 });
     expect(label()).toBe("John 3:16 · Geneva 1599");
 
+    // First visit: welcome card is open with the locked copy; Continue dismisses and remembers.
+    const dlg = document.getElementById("welcome") as HTMLDialogElement;
+    expect(dlg.open).toBe(true);
+    expect([...dlg.querySelectorAll("h2, p")].map((n) => n.textContent)).toEqual([
+      "Scroll",
+      "Let the Bible roll open past your screen at the pace you choose.",
+      "Add commentary after each section from Matthew Henry or John Calvin should you wish.",
+      "Take Scroll offline for distraction-free reading.",
+    ]);
+    (dlg.querySelector(".welcome-start") as HTMLButtonElement).click();
+    expect(dlg.open).toBe(false);
+    expect(localStorage.getItem("bible_scroller.welcome-seen")).toBe("1");
+
     // Static role=radio buttons all carry aria-checked and one tab stop per group.
     for (const g of document.querySelectorAll('[role="radiogroup"]')) {
       const radios = [...g.querySelectorAll<HTMLElement>('[role="radio"]')];
@@ -158,7 +171,8 @@ describe.skipIf(!hasFull)("smoke: full app boot in the DOM (picker + edition swi
     document.getElementById("play")!.click();
     await vi.waitFor(() => expect(document.body.classList.contains("state-running")).toBe(true), { timeout: 5000 });
     const track = document.getElementById("track")!;
-    expect(track.textContent).toContain("Tobit 1:1");
+    // happy-dom has no layout (offsetHeight 0), so the rAF loop recycles items quickly; check the book, not the exact verse.
+    expect(track.textContent).toMatch(/Tobit \d+:\d+/);
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     expect(document.body.classList.contains("state-stopped")).toBe(true);
     expect(document.getElementById("play")!.textContent).toBe("Resume");

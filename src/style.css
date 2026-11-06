@@ -443,3 +443,36 @@ body.mode-horizontal.size-xl {
 }
 .picker-suggest button:hover { background: var(--surface-hover); }
 .picker-empty { margin: 0; color: var(--ink-quiet); font-family: var(--serif); }
+
+/* ---------- first-visit welcome card (Word/Verse pattern: centred serif card, dark backdrop, no animation) ---------- */
+.welcome {
+  width: min(26rem, calc(100vw - 24px)); max-width: none; max-height: calc(100dvh - 24px);
+  margin: auto; padding: 0; overflow: auto;
+  border: 1px solid var(--rule); border-radius: 4px;
+  background: var(--panel); color: var(--ink); box-shadow: var(--panel-shadow);
+}
+.welcome::backdrop { background: rgba(0, 0, 0, 0.55); }
+.welcome-card {
+  position: relative; display: grid; gap: 12px;
+  padding: 28px clamp(18px, 6vw, 30px) 24px;
+  font-family: var(--serif); font-size: 1rem; line-height: 1.5;
+}
+.welcome-card::before {
+  position: absolute; inset: 8px; border: 1px solid var(--rule);
+  content: ""; pointer-events: none; border-radius: 2px;
+}
+.welcome-card p { margin: 0; }
+.welcome-title { margin: 0 40px 4px; font-family: var(--serif); font-size: 1.35rem; font-weight: 600; text-align: center; }
+.welcome-close {
+  position: absolute; top: 14px; right: 14px; z-index: 1;
+  width: 36px; height: 36px; border: 0; border-radius: 3px;
+  background: transparent; color: var(--ink-soft); cursor: pointer; font-size: 1.1rem;
+}
+.welcome-close:hover { background: var(--surface-hover); color: var(--ink); }
+.welcome-start {
+  justify-self: center; position: relative; z-index: 1;
+  min-height: 44px; margin-top: 4px; padding: 0 1.4rem;
+  border: 1px solid var(--rule); border-radius: 3px; background: var(--field-bg); color: var(--ink);
+  font-family: var(--ui); cursor: pointer;
+}
+.welcome-start:hover { background: var(--surface-hover); }

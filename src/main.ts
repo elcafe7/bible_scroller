@@ -9,6 +9,7 @@ import { LoopCursor } from "./sequence";
 import type { Commentary, FontSize, GenevaBook, GenevaMeta, HenryBook, Prefs, ScrollMode, Speed, Theme } from "./types";
 
 import * as wakelock from "./wakelock";
+import { createWelcome } from "./welcome";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const body = document.body;
@@ -52,6 +53,7 @@ const metas = new Map<string, GenevaMeta>();
 /** Land-picker draft start (committed to prefs on Start / picker confirm). */
 let draft: Prefs["range"] | null = null;
 let picker: ReturnType<typeof createPassagePicker> | null = null;
+let welcome: ReturnType<typeof createWelcome> | null = null;
 
 function showError(msg: string, help = "") {
   errorBox.querySelector(".error-msg")!.textContent = msg;
@@ -407,6 +409,7 @@ function wire() {
   document.addEventListener("pointermove", () => { if (running) armIdle(); });
   document.addEventListener("keydown", (e) => {
     if (picker?.isOpen()) return; // picker owns Escape
+    if (welcome?.isOpen()) return; // welcome card owns its keys
     if (running) {
       if (e.key === "Escape" || e.key === " " || e.code === "Space") { e.preventDefault(); stop(); }
       return;
@@ -473,6 +476,8 @@ async function boot() {
   applyModeUi(prefs.mode);
   updatePlayLabel();
   syncRovingTabs();
+  welcome = createWelcome($<HTMLDialogElement>("welcome"), storage, () => passageBtn);
+  welcome.maybeOpen();
 }
 
 void boot();
