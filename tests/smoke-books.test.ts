@@ -101,7 +101,7 @@ describe.skipIf(!hasFull)("smoke: full app boot in the DOM (picker + edition swi
     expect(dlg.open).toBe(true);
     expect([...dlg.querySelectorAll("h2, p")].map((n) => n.textContent)).toEqual([
       "Scroll",
-      "Let the Bible roll open past your screen at the pace you choose.",
+      "Scroll is a leisurely bible reading app. Let the Bible roll open past your screen at the pace you choose.",
       "Add commentary after each section from Matthew Henry or John Calvin should you wish.",
       "Take Scroll offline for distraction-free reading.",
     ]);
