@@ -25,6 +25,8 @@ mkdirSync(out, { recursive: true });
 writeFileSync(join(out, "index.html"), html);
 cpSync(join(DIST, "assets"), join(out, "assets"), { recursive: true });
 cpSync(join(DIST, "data"), join(out, "data"), { recursive: true });
+if (!existsSync(join(DIST, "LICENSE"))) { console.error("stage-web: dist/LICENSE missing; rebuild"); process.exit(1); }
+cpSync(join(DIST, "LICENSE"), join(out, "LICENSE"));
 
 // Offline download linked from the welcome card + footer: ./bible_scroller-<version>.zip (+ SHA256SUMS).
 const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
@@ -74,9 +76,9 @@ AddCharset utf-8 .json .js .css .html
   RewriteRule ^ - [L]
 </IfModule>
 
-<Files "SHA256SUMS">
+<FilesMatch "^(SHA256SUMS|LICENSE)$">
   ForceType text/plain
-</Files>
+</FilesMatch>
 
 <IfModule mod_headers.c>
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
@@ -97,9 +99,9 @@ AddCharset utf-8 .json .js .css .html
     Header set Content-Disposition "attachment"
     Header set Cache-Control "public, max-age=86400"
   </FilesMatch>
-  <Files "SHA256SUMS">
+  <FilesMatch "^(SHA256SUMS|LICENSE)$">
     Header set Cache-Control "public, max-age=86400"
-  </Files>
+  </FilesMatch>
   # The HTML shell revalidates so a new build's asset names are picked up.
   <FilesMatch "^index\\.html$">
     Header set Cache-Control "no-cache"

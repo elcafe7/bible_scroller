@@ -18,5 +18,5 @@ Use it
   Esc, Space, or a double-tap returns to settings; Resume continues.
   Settings are remembered in this browser only.
 
-No network access, accounts, or server code. Bible text and commentary
-are public domain.
+No network access, accounts, or server code. App code: MIT License
+(see LICENSE). Bible text and commentary are public domain.

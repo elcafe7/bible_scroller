@@ -24,4 +24,12 @@ describe("offline download link", () => {
     expect(cfg).toContain('replaceAll("%OFFLINE_ZIP%", `bible_scroller-${version}.zip`)');
     expect(version).toBe("0.1.0");
   });
+  it("footer credits line links the MIT LICENSE shipped next to index.html", () => {
+    const html = readFileSync(resolve(ROOT, "index.html"), "utf8");
+    expect(html).toMatch(/<p class="offline-note">a project of [\s\S]*<a href="\.\/LICENSE">MIT License<\/a><\/p>/);
+    const lic = readFileSync(resolve(ROOT, "LICENSE"), "utf8");
+    expect(lic.startsWith("MIT License\n\nCopyright (c) 2026 elcafe7\n")).toBe(true);
+    const pkg = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8")) as { license: string };
+    expect(pkg.license).toBe("MIT");
+  });
 });

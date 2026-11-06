@@ -39,6 +39,7 @@ function copyData(): Plugin {
       rmSync(dest, { recursive: true, force: true });
       cpSync(src, dest, { recursive: true, filter: (p) => !/\.(db|env|md)$/i.test(p) && !/\/\.env/.test(p) });
       console.log(`copy-data: ${src === full ? "data/" : "fixtures/john1/"} -> dist/data`);
+      cpSync(resolve(root, "LICENSE"), resolve(root, "dist/LICENSE")); // footer links ./LICENSE (MIT)
     },
   };
 }

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Ambient offline Geneva 1599 verse scroller with optional Matthew Henry interchange.",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
