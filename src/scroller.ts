@@ -4,14 +4,14 @@ let commentaryName = "Matthew Henry";
 export function setCommentaryName(n: string) { commentaryName = n; }
 
 /** Vertical reading pace in CSS lines per minute. Tuned so Fast feels brisk continuous reading (not a crawl); still far slower than a stock ticker. */
-export const SPEED_LPM: Record<Speed, number> = { slow: 48, medium: 80, fast: 130 };
+export const SPEED_LPM: Record<Speed, number> = { "very-slow": 30, slow: 48, medium: 80, fast: 130 };
 
 /**
  * Horizontal ticker CPM — separate curve from vertical. Marquee tracking feels faster
  * than vertical LPM at the same "Slow", so Slow/Medium sit lower; Fast stays ~reading-brisk.
- * Before: {900, 1200, 1620} (Slow felt fast). After: clear ~1.8× steps, Fast unchanged.
+ * Slow/Medium/Fast kept at 480/900/1620; Very Slow is a ~0.625× step below Slow (same ratio as vertical).
  */
-export const SPEED_CPM: Record<Speed, number> = { slow: 480, medium: 900, fast: 1620 };
+export const SPEED_CPM: Record<Speed, number> = { "very-slow": 300, slow: 480, medium: 900, fast: 1620 };
 
 export interface ScrollerSource {
   next(): LoopItem | null;

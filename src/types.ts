@@ -73,7 +73,7 @@ export type LoopItem =
       section_title?: string;
     };
 
-export type Speed = "slow" | "medium" | "fast";
+export type Speed = "very-slow" | "slow" | "medium" | "fast";
 export type Theme = "light" | "dark";
 export type ScrollMode = "vertical" | "horizontal";
 export type Commentary = "none" | "henry" | "calvin";

@@ -3,7 +3,7 @@ import { DEFAULT_EDITION_ID, EDITIONS } from "./editions";
 import type { Commentary, FontSize, GenevaMeta, GenevaMetaBook, Prefs, VersePoint, ScrollMode, Speed, Theme } from "./types";
 
 export const PREFS_KEY = "bible_scroller.v1";
-const SPEEDS: Speed[] = ["slow", "medium", "fast"];
+const SPEEDS: Speed[] = ["very-slow", "slow", "medium", "fast"];
 const THEMES: Theme[] = ["light", "dark"];
 const MODES: ScrollMode[] = ["vertical", "horizontal"];
 const COMMENTARIES: Commentary[] = ["none", "henry", "calvin"];
