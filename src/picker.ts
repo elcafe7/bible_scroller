@@ -1,6 +1,6 @@
 /**
  * Word-style passage picker: edition → book → chapter → verse (popup dialog).
- * Scroll editions today: Geneva only; UI still exposes edition in the same flow.
+ * Editions: Geneva + KJ16 (with Apocrypha), KJV (Protestant 66 — no empty Apocrypha).
  */
 import { canonBooks, groupBooks as groupCanon } from "./canon";
 import type { GenevaMeta, GenevaMetaBook, VersePoint } from "./types";
@@ -45,7 +45,8 @@ function matchQuery(books: GenevaMetaBook[], q: string): { book: GenevaMetaBook;
 
 export function createPassagePicker(opts: {
   root: HTMLElement;
-  getMeta: () => GenevaMeta;
+  /** Meta for the given edition (books list changes with Apocrypha). */
+  getMeta: (editionId: string) => GenevaMeta;
   getEditions: () => PickerEdition[];
   onSelect: (sel: PickerSelection) => void;
 }) {
@@ -81,8 +82,18 @@ export function createPassagePicker(opts: {
       b.title = e.name;
       b.setAttribute("aria-pressed", String(e.id === st.edition_id));
       b.addEventListener("click", () => {
+        if (st.edition_id === e.id) return;
         st.edition_id = e.id;
-        renderEditions();
+        const meta = opts.getMeta(e.id);
+        // Drop book selection when switching to an edition that lacks it (e.g. Apocrypha → KJV).
+        if (st.book && !meta.books.some((x) => x.book_id === st.book!.book_id)) {
+          st.book = null;
+          st.chapter = 0;
+          st.step = "books";
+        } else if (st.book) {
+          st.book = meta.books.find((x) => x.book_id === st.book!.book_id) ?? st.book;
+        }
+        render();
       });
       editionsBox.append(b);
     }
@@ -102,7 +113,7 @@ export function createPassagePicker(opts: {
   function renderBooks() {
     booksBox.replaceChildren();
     hint.textContent = "";
-    const meta = opts.getMeta();
+    const meta = opts.getMeta(st.edition_id);
     const books = canonBooks(meta);
     const q = filter.value.trim();
     if (!q) {
@@ -248,7 +259,7 @@ export function createPassagePicker(opts: {
   });
   filter.addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;
-    const hits = matchQuery(canonBooks(opts.getMeta()), filter.value);
+    const hits = matchQuery(canonBooks(opts.getMeta(st.edition_id)), filter.value);
     if (hits.length === 1 && hits[0].chapter && hits[0].verse) {
       e.preventDefault();
       go(hits[0].book.book_id, hits[0].chapter, hits[0].verse);

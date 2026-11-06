@@ -22,6 +22,7 @@ describe("preferences", async () => {
       ? { chapter: 3, verse: 16 } : { chapter: 1, verse: 1 };
     expect(d).toEqual({
       range: { book_id: "john", start: expectStart },
+      edition: "geneva1599",
       commentary: "none",
       fontSize: "m",
       speed: "medium",

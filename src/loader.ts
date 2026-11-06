@@ -38,20 +38,31 @@ export function createLoader(opts: LoaderOptions = {}) {
     }
   }
 
-  async function loadGenevaMeta(): Promise<GenevaMeta> {
-    const j = (await getJson("geneva/meta.json")) as GenevaMeta | undefined;
+  async function loadEditionMeta(dir: string): Promise<GenevaMeta> {
+    if (!SAFE_ID.test(dir)) throw new DataError("meta_missing", "Bible data missing or unreadable.");
+    const j = (await getJson(`${dir}/meta.json`)) as GenevaMeta | undefined;
     if (!j || !Array.isArray(j.books) || j.books.length === 0) {
       throw new DataError("meta_missing", "Bible data missing or unreadable.");
     }
     return j;
   }
 
-  async function loadGenevaBook(bookId: string): Promise<GenevaBook> {
-    const j = SAFE_ID.test(bookId) ? ((await getJson(`geneva/${bookId}.json`)) as GenevaBook | undefined) : undefined;
+  async function loadEditionBook(dir: string, bookId: string): Promise<GenevaBook> {
+    const j = SAFE_ID.test(dir) && SAFE_ID.test(bookId)
+      ? ((await getJson(`${dir}/${bookId}.json`)) as GenevaBook | undefined)
+      : undefined;
     if (!j || !Array.isArray(j.chapters)) {
       throw new DataError("book_missing", `Book data not found: ${bookId}.`, bookId);
     }
     return j;
+  }
+
+  async function loadGenevaMeta(): Promise<GenevaMeta> {
+    return loadEditionMeta("geneva");
+  }
+
+  async function loadGenevaBook(bookId: string): Promise<GenevaBook> {
+    return loadEditionBook("geneva", bookId);
   }
 
   async function loadHenryMeta(): Promise<HenryMeta | null> {
@@ -79,7 +90,7 @@ export function createLoader(opts: LoaderOptions = {}) {
     return { ...j, sections };
   }
 
-  return { loadGenevaMeta, loadGenevaBook, loadHenryMeta, loadHenryBook, loadCommentaryMeta, loadCommentaryBook };
+  return { loadGenevaMeta, loadGenevaBook, loadEditionMeta, loadEditionBook, loadHenryMeta, loadHenryBook, loadCommentaryMeta, loadCommentaryBook };
 }
 
 export type Loader = ReturnType<typeof createLoader>;

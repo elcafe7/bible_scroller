@@ -15,14 +15,16 @@ npm install
 
 ## Build the data: `npm run build-data`
 
-Reads the Lex SQLite files **read-only** and writes consistent JSON to `data/geneva/**` and `data/henry/**` (Protestant 66 books; Geneva apocrypha rows are skipped; Henry chapter overviews are skipped).
+Reads the Lex SQLite files **read-only** and writes consistent JSON to `data/geneva/**`, `data/kj16/**`, `data/kjv/**`, and `data/henry/**`. Geneva and KJ16 include Apocrypha from Lex; KJV stays Protestant 66. Henry chapter overviews are skipped.
 
 Sources, first hit wins (the script prints which it used):
 
 | Role | Path |
 |---|---|
-| Geneva | `$BIBLE_SCROLLER_GENEVA_DB`, then `~/.local/share/lex-cli/2.6.6/runtime-data/bible_versions/gen.db`, then `/workspace/lex-*/runtime-data/bible_versions/gen.db` |
-| Henry | `$BIBLE_SCROLLER_HENRY_DB`, then `~/.local/share/lex-cli/2.6.6/runtime-data/commentaries/matthew_henry.db`, then `/workspace/lex-geneva-word/runtime-data/commentaries/matthew_henry.db` |
+| Geneva | `$BIBLE_SCROLLER_GENEVA_DB`, then Lex `bible_versions/gen.db` |
+| KJ16 | `$BIBLE_SCROLLER_KJ16_DB`, then Lex `bible_versions/kj16.db` |
+| KJV | `$BIBLE_SCROLLER_KJV_DB`, then Lex `bible_versions/kjv.db` |
+| Henry | `$BIBLE_SCROLLER_HENRY_DB`, then Lex `commentaries/matthew_henry.db` |
 
 If neither is found it exits 2, prints the expected paths, and leaves `fixtures/john1/` alone. No network downloads.
 
@@ -58,7 +60,7 @@ The zip unpacks to one `bible_scroller/` folder with `index.html`, `assets/`, `d
 
 ## Using the scroller
 
-- **Passage:** pick Start book + chapter:verse (OT / NT / Apocrypha optgroups). Scroll reads to the end of that book, then loops. Edition select matches Verse/Word (Geneva only today). First run starts on John 3:16 when available.
+- **Passage:** pick Start book + chapter:verse (OT / NT / Apocrypha groups). Scroll reads to the end of that book, then loops. Editions: **Geneva** and **KJV 1611** (with Apocrypha), **KJV** (Protestant 66 only). First run starts on John 3:16 when available.
 - **Settings vs scroll:** Settings is a normal page (not an overlay). **Start** / **Resume** opens a full-screen scroll (Fullscreen API when the browser allows it, otherwise a CSS full-viewport fallback). **Esc**, **Space**, or a **double-tap** on the passage returns to settings and freezes the place so Resume can continue. **Restart** resets to the start of the range and enters scroll again.
 - **Mode:** Vertical (default) is the full-screen ambient column. Ticker is a one-line horizontal marquee — one verse (or Henry block) at a time, looping the chosen range.
 - **Speed:** Slow, Medium (default), Fast. Vertical is about 48 / 80 / 130 lines a minute (Fast is brisk continuous reading). Horizontal ticker uses a separate character pace; both stay far slower than a stock ticker.

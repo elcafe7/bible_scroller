@@ -101,9 +101,10 @@ describe("resolveRange / henryForVerse (fixture)", async () => {
 
 describe.skipIf(!existsSync(resolve(DATA, "geneva/meta.json")))("full data/ build", () => {
   const full = createLoader({ fetch: fsFetch(DATA) });
-  it("has 66 books and John 1:1", async () => {
+  it("has Protestant 66 + Geneva Apocrypha and John 1:1", async () => {
     const meta = await full.loadGenevaMeta();
-    expect(meta.books).toHaveLength(66);
+    expect(meta.books).toHaveLength(73); // 66 + 7 Apocrypha
+    expect(meta.books.some((b) => b.book_id === "tobit")).toBe(true);
     const john = await full.loadGenevaBook("john");
     expect(resolveRange(meta, john, { book_id: "john" }).length).toBeGreaterThan(800);
     expect((await full.loadHenryBook("john"))?.sections.some((s) => s.verse_start)).toBe(true);

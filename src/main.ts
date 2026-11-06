@@ -2,10 +2,12 @@ import * as fullscreen from "./fullscreen";
 import { canonBooks, resolveFromStart } from "./canon";
 import { createLoader, DataError } from "./loader";
 import { createPassagePicker, type PickerEdition } from "./picker";
-import { loadPrefs, loadTheme, savePrefs, safeStorage } from "./prefs";
+import { loadPrefs, loadTheme, peekEdition, savePrefs, safeStorage } from "./prefs";
+import { DEFAULT_EDITION_ID, EDITIONS, editionById, editionDir } from "./editions";
 import { setCommentaryName, Scroller } from "./scroller";
 import { LoopCursor } from "./sequence";
 import type { Commentary, FontSize, GenevaBook, GenevaMeta, HenryBook, Prefs, ScrollMode, Speed, Theme } from "./types";
+
 import * as wakelock from "./wakelock";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -45,6 +47,8 @@ let idleTimer = 0;
 let firstTap: { t: number; x: number; y: number } | null = null;
 const bookCache = new Map<string, GenevaBook>();
 const commentaryCache = new Map<string, HenryBook | null>();
+/** edition_id → meta (Geneva / KJ16 / KJV). */
+const metas = new Map<string, GenevaMeta>();
 /** Land-picker draft start (committed to prefs on Start / picker confirm). */
 let draft: Prefs["range"] | null = null;
 let picker: ReturnType<typeof createPassagePicker> | null = null;
@@ -89,15 +93,51 @@ function armIdle() {
 
 const metaBook = (id: string) => canonBooks(meta!).find((b) => b.book_id === id)!;
 
-function editionShort(m: GenevaMeta): string {
-  const n = m.edition_name;
-  if (/geneva/i.test(n)) return "Geneva";
-  return n.split("(")[0]!.trim() || n;
+function editionShort(id: string): string {
+  return editionById(id)?.short ?? id;
 }
 
 function editionsForPicker(): PickerEdition[] {
-  const m = meta!;
-  return [{ id: m.edition_id, short: editionShort(m), name: m.edition_name }];
+  return EDITIONS.filter((e) => metas.has(e.id)).map((e) => ({
+    id: e.id, short: e.short, name: e.name,
+  }));
+}
+
+function metaFor(editionId: string): GenevaMeta {
+  return metas.get(editionId) ?? meta!;
+}
+
+/** If book missing in target edition (Apocrypha → KJV), fall back to John 3:16 / first book. */
+function rangeInEdition(editionId: string, range: Prefs["range"]): Prefs["range"] {
+  const m = metaFor(editionId);
+  const mb = canonBooks(m).find((b) => b.book_id === range.book_id);
+  if (mb) {
+    const ch = Math.min(Math.max(1, range.start.chapter), mb.chapters);
+    const maxV = mb.verse_counts[ch - 1] || 1;
+    const vs = Math.min(Math.max(1, range.start.verse), maxV);
+    return { book_id: mb.book_id, start: { chapter: ch, verse: vs } };
+  }
+  const john = canonBooks(m).find((b) => b.book_id === "john");
+  if (john && john.chapters >= 3 && (john.verse_counts[2] ?? 0) >= 16) {
+    return { book_id: "john", start: { chapter: 3, verse: 16 } };
+  }
+  const first = canonBooks(m)[0]!;
+  return { book_id: first.book_id, start: { chapter: 1, verse: 1 } };
+}
+
+function setEdition(editionId: string) {
+  if (!metas.has(editionId)) return;
+  meta = metas.get(editionId)!;
+  const next = rangeInEdition(editionId, pickerStart());
+  if (prefs) {
+    prefs.edition = editionId;
+    prefs.range = { book_id: next.book_id, start: { ...next.start } };
+    persist();
+  }
+  draft = { book_id: next.book_id, start: { ...next.start } };
+  syncPassageLabel();
+  updateHenryNa();
+  updatePlayLabel();
 }
 
 function pickerStart(): Prefs["range"] {
@@ -107,7 +147,7 @@ function pickerStart(): Prefs["range"] {
 function syncPassageLabel() {
   const r = pickerStart();
   const mb = metaBook(r.book_id);
-  const ed = meta ? editionShort(meta) : "Geneva";
+  const ed = editionShort(prefs?.edition ?? meta?.edition_id ?? DEFAULT_EDITION_ID);
   passageLabel.textContent = `${mb.book} ${r.start.chapter}:${r.start.verse} · ${ed}`;
   passageBtn.setAttribute("aria-label", `${passageLabel.textContent}, change passage`);
   updateHenryNa();
@@ -141,7 +181,8 @@ function setSize(z: FontSize) {
   if (prefs) { prefs.fontSize = z; persist(); }
   if (prefs) scroller?.setSpeed(prefs.speed);
 }
-const startKey = (r: Prefs["range"]) => `${r.book_id}:${r.start.chapter}:${r.start.verse}`;
+const startKey = (r: Prefs["range"], edition = prefs?.edition ?? DEFAULT_EDITION_ID) =>
+  `${edition}:${r.book_id}:${r.start.chapter}:${r.start.verse}`;
 
 function updatePlayLabel() {
   const dirty = startKey(pickerStart()) !== appliedKey;
@@ -186,8 +227,13 @@ function setMode(m: ScrollMode) {
 }
 
 async function ensureBooks(bookId: string): Promise<Map<string, GenevaBook>> {
-  if (!bookCache.has(bookId)) bookCache.set(bookId, await loader.loadGenevaBook(bookId));
-  return bookCache;
+  const dir = editionDir(prefs.edition);
+  const key = `${prefs.edition}:${bookId}`;
+  if (!bookCache.has(key)) bookCache.set(key, await loader.loadEditionBook(dir, bookId));
+  // Return a one-entry map keyed by book_id for resolveFromStart.
+  const map = new Map<string, GenevaBook>();
+  map.set(bookId, bookCache.get(key)!);
+  return map;
 }
 async function ensureCommentaryMap(bookId: string): Promise<Map<string, HenryBook | null>> {
   const c = prefs.commentary;
@@ -295,7 +341,7 @@ async function onRestart() {
 function openPicker() {
   if (!picker || !meta) return;
   const r = pickerStart();
-  picker.open({ book_id: r.book_id, start: r.start, edition_id: meta.edition_id });
+  picker.open({ book_id: r.book_id, start: r.start, edition_id: prefs.edition });
 }
 
 function wire() {
@@ -339,7 +385,17 @@ async function boot() {
   showSettings();
   wire();
   try {
-    meta = await loader.loadGenevaMeta();
+    for (const ed of EDITIONS) {
+      try {
+        const m = await loader.loadEditionMeta(ed.dir);
+        metas.set(ed.id, m);
+      } catch {
+        /* edition optional if data dir missing */
+      }
+    }
+    const want = peekEdition(storage);
+    meta = metas.get(want) ?? metas.get(DEFAULT_EDITION_ID) ?? [...metas.values()][0] ?? null;
+    if (!meta) throw new Error("no editions");
   } catch {
     $<HTMLElement>("boot").remove();
     const fileHelp = location.protocol === "file:"
@@ -350,11 +406,18 @@ async function boot() {
     return;
   }
   $<HTMLElement>("boot").remove();
+  prefs = loadPrefs(storage, meta);
+  if (!metas.has(prefs.edition)) prefs.edition = meta.edition_id;
+  meta = metas.get(prefs.edition) ?? meta;
+  // Clamp range if stored Apocrypha book isn't in this edition (e.g. switched data).
+  prefs.range = rangeInEdition(prefs.edition, prefs.range);
+  draft = { book_id: prefs.range.book_id, start: { ...prefs.range.start } };
   picker = createPassagePicker({
     root: $<HTMLElement>("picker"),
-    getMeta: () => meta!,
+    getMeta: (editionId) => metaFor(editionId),
     getEditions: editionsForPicker,
     onSelect: (sel) => {
+      if (sel.edition_id && sel.edition_id !== prefs.edition) setEdition(sel.edition_id);
       setDraft({ book_id: sel.book_id, start: sel.start });
     },
   });
@@ -364,8 +427,6 @@ async function boot() {
       updateHenryNa();
     });
   }
-  prefs = loadPrefs(storage, meta);
-  draft = { book_id: prefs.range.book_id, start: { ...prefs.range.start } };
   syncPassageLabel();
   setCommentary(prefs.commentary);
   setSize(prefs.fontSize);

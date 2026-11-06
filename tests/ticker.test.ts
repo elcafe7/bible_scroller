@@ -223,3 +223,35 @@ describe("ticker font size viewport proportions", () => {
     expect(SPEED_CPM.medium).toBe(900);
   });
 });
+
+describe("Geneva Apocrypha ticker smoke", () => {
+  it("Tobit verses spawn without commentary line (full data)", async () => {
+    const DATA = resolve(import.meta.dirname, "../data");
+    if (!existsSync(resolve(DATA, "geneva/tobit.json"))) return;
+    const { createLoader } = await import("../src/loader");
+    const { resolveRange, LoopCursor } = await import("../src/sequence");
+    const { Scroller } = await import("../src/scroller");
+    const { fsFetch } = await import("./helpers");
+    const loader = createLoader({ fetch: fsFetch(DATA) });
+    const meta = await loader.loadEditionMeta("geneva");
+    const tob = await loader.loadEditionBook("geneva", "tobit");
+    const verses = resolveRange(meta, tob, {
+      book_id: "tobit",
+      start: { chapter: 1, verse: 1 },
+      end: { chapter: 1, verse: 2 },
+    });
+    document.body.innerHTML = `<main id="stage"><div id="track"></div></main>`;
+    document.body.className = "mode-horizontal size-m";
+    const stage = document.getElementById("stage")!;
+    const track = document.getElementById("track")!;
+    Object.defineProperty(stage, "clientWidth", { configurable: true, get: () => 800 });
+    Object.defineProperty(stage, "clientHeight", { configurable: true, get: () => 400 });
+    const cursor = new LoopCursor(verses, null);
+    const scroller = new Scroller(stage, track, { next: () => cursor.next(false) }, "fast", "horizontal");
+    scroller.reset();
+    expect(track.firstElementChild?.classList.contains("verse")).toBe(true);
+    expect(track.querySelector(".henry-row")).toBeNull();
+    expect((track.textContent || "").toLowerCase()).toContain("tobit");
+    scroller.pause();
+  });
+});

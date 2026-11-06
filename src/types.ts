@@ -81,6 +81,8 @@ export type FontSize = "s" | "m" | "l" | "xl";
 /** Start-only. Legacy end/henry may still appear in old localStorage. */
 export interface Prefs {
   range: { book_id: string; start: VersePoint; end?: VersePoint };
+  /** geneva1599 | kj16 | kjv */
+  edition: string;
   commentary: Commentary;
   fontSize: FontSize;
   speed: Speed;
