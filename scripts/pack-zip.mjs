@@ -4,6 +4,7 @@
 import { readdirSync, readFileSync, statSync, writeFileSync, existsSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { crc32, deflateRawSync } from "node:zlib";
+import { offlineHtml } from "./offline-html.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const DIST = join(ROOT, "dist");
@@ -15,20 +16,6 @@ const FORBIDDEN = /(^|\/)(node_modules|\.git)(\/|$)|\.db$|(^|\/)\.env(\.|$)|\.pe
 if (!existsSync(join(DIST, "index.html")) || !existsSync(join(DIST, "data/geneva/meta.json"))) {
   console.error("pack: dist/index.html or dist/data/geneva/meta.json missing; run npm run build first");
   process.exit(1);
-}
-
-/**
- * Inside the offline copy the download link would point at a zip that is not there: keep the
- * welcome-card sentence as plain text and drop the footer download line.
- */
-function offlineHtml(html) {
-  const out = html
-    .replace(/[ \t]*<p class="offline-dl" data-offline-line>[\s\S]*?<\/p>\n/, "")
-    .replace(/<a class="welcome-offline" data-offline-link [^>]*>([\s\S]*?)<\/a>/, "$1");
-  if (/data-offline-link|data-offline-line/.test(out)) {
-    console.error("pack: could not strip offline download links from index.html"); process.exit(1);
-  }
-  return Buffer.from(out, "utf8");
 }
 
 /** `(globalThis.__SCROLL_DATA__ ||= {})["geneva/meta.json"] = {...};` — key matches src/loader.ts DATA_REGISTRY. */
@@ -58,7 +45,7 @@ for (const f of files) {
   const isData = /^data\/.+\.json$/.test(rel);
   const name = TOP + rel + (isData ? ".js" : "");
   if (FORBIDDEN.test(name)) { console.error(`pack: forbidden file in dist: ${name}`); process.exit(1); }
-  const raw = name === TOP + "index.html" ? offlineHtml(readFileSync(f, "utf8"))
+  const raw = name === TOP + "index.html" ? Buffer.from(offlineHtml(readFileSync(f, "utf8"), version), "utf8")
     : isData ? dataWrapper(rel.slice("data/".length), readFileSync(f, "utf8"))
     : readFileSync(f);
   const def = deflateRawSync(raw, { level: 9 });
