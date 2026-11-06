@@ -144,7 +144,6 @@ export function createPassagePicker(opts: {
       return;
     }
     const list = el("div", "picker-suggest");
-    list.setAttribute("role", "listbox");
     for (const h of hits) {
       const b = h.book;
       let ch = h.chapter ?? 0;
@@ -157,7 +156,6 @@ export function createPassagePicker(opts: {
       const label = ch && vs ? `${b.book} ${ch}:${vs}` : ch ? `${b.book} ${ch}` : b.book;
       const btn = el("button", "", ch && vs ? `Go to ${label}` : b.book);
       btn.type = "button";
-      btn.setAttribute("role", "option");
       btn.addEventListener("click", () => {
         if (ch && vs) go(b.book_id, ch, vs);
         else if (ch) {
@@ -231,7 +229,10 @@ export function createPassagePicker(opts: {
     renderNumbers(maxV, "verse", (n) => n === curV, (n) => go(st.book!.book_id, st.chapter, n));
   }
 
+  let returnFocus: HTMLElement | null = null;
+
   function open(current: PickerSelection) {
+    returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     st = {
       step: "books",
       edition_id: current.edition_id || editions()[0]?.id || "",
@@ -246,7 +247,11 @@ export function createPassagePicker(opts: {
   }
 
   function close() {
+    if (root.hidden) return;
     root.hidden = true;
+    // Return focus to the control that opened the dialog (a11y), if it is still on the page.
+    if (returnFocus?.isConnected) returnFocus.focus();
+    returnFocus = null;
   }
 
   filter.addEventListener("input", () => {

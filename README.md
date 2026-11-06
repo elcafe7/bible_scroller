@@ -1,6 +1,6 @@
 # bible_scroller
 
-Private ambient Bible verse scroller: pick a Geneva 1599 book or passage, scroll it continuously, optionally interchange each verse with Matthew Henry's note. Ships as a downloadable offline zip (TypeScript/JS client, no PHP, no server-only features), in the same spirit as Word and Verse.
+Private ambient Bible verse scroller: pick a Geneva 1599, KJV 1611, or KJV Oxford 1769 passage, scroll it continuously (vertical or ticker), optionally followed by Matthew Henry or Calvin commentary. Ships as a downloadable offline zip (TypeScript/JS client, no PHP, no server-only features), in the same spirit as Word and Verse.
 
 **Spec (source of truth):** [`docs/specs/bible-scroller.md`](docs/specs/bible-scroller.md)
 
@@ -15,7 +15,7 @@ npm install
 
 ## Build the data: `npm run build-data`
 
-Reads the Lex SQLite files **read-only** and writes consistent JSON to `data/geneva/**`, `data/kj16/**`, `data/kjv/**`, and `data/henry/**`. Geneva and KJ16 include Apocrypha from Lex; KJV stays Protestant 66. Henry chapter overviews are skipped.
+Reads the Lex SQLite files **read-only** and writes consistent JSON to `data/geneva/**`, `data/kj16/**`, `data/kjv/**`, `data/henry/**`, and (via `build-calvin.mjs`) `data/calvin/**`. Geneva and KJ16 include Apocrypha from Lex; KJV stays Protestant 66. Henry chapter overviews are skipped.
 
 Sources, first hit wins (the script prints which it used):
 
@@ -50,7 +50,7 @@ The zip unpacks to one `bible_scroller/` folder with `index.html`, `assets/`, `d
 ## Open it (unzip and open)
 
 1. Unzip `bible_scroller-0.1.0.zip` and open `bible_scroller/index.html`.
-2. **Local static server fallback:** Chrome, Edge, and Firefox block JSON loads from `file://`. If the page says "Bible data missing or unreadable", serve the folder (still fully offline):
+2. **Local static server fallback:** Firefox runs it from `file://`; Chrome and Edge block JSON loads from `file://`. If the page says "Bible data missing or unreadable", serve the folder (still fully offline):
 
    ```bash
    cd bible_scroller
@@ -60,12 +60,20 @@ The zip unpacks to one `bible_scroller/` folder with `index.html`, `assets/`, `d
 
 ## Using the scroller
 
-- **Passage:** pick Start book + chapter:verse (OT / NT / Apocrypha groups). Scroll reads to the end of that book, then loops. Editions: **Geneva** and **KJV 1611** (with Apocrypha), **KJV** (Protestant 66 only). First run starts on John 3:16 when available.
+- **Passage:** pick Start book + chapter:verse (OT / NT / Apocrypha groups). Scroll reads to the end of that book, then loops. Editions: **Geneva 1599** and **KJV 1611** (with Apocrypha), **KJV Oxford 1769** (Protestant 66 only, no Apocrypha group). First run starts on John 3:16 when available.
 - **Settings vs scroll:** Settings is a normal page (not an overlay). **Start** / **Resume** opens a full-screen scroll (Fullscreen API when the browser allows it, otherwise a CSS full-viewport fallback). **Esc**, **Space**, or a **double-tap** on the passage returns to settings and freezes the place so Resume can continue. **Restart** resets to the start of the range and enters scroll again.
-- **Mode:** Vertical (default) is the full-screen ambient column. Ticker is a one-line horizontal marquee — one verse (or Henry block) at a time, looping the chosen range.
-- **Speed:** Slow, Medium (default), Fast. Vertical is about 48 / 80 / 130 lines a minute (Fast is brisk continuous reading). Horizontal ticker uses a separate character pace; both stay far slower than a stock ticker.
-- **Henry toggle:** "Matthew Henry between verses" is off by default. When on, Henry's note follows the last verse it covers in your range (each section shows once per loop), then the next verse continues. Verses with no Henry section just continue. If a book has no Henry file (Henry has no Psalms in the Lex data), a one-time "Commentary data not available." notice shows and verses keep scrolling.
+- **Mode:** Vertical (default) is the full-screen ambient column. Ticker is a horizontal marquee — verses on line 1, then commentary on line 2, one item at a time, looping the chosen range.
+- **Wake lock:** the screen stays awake while scrolling where the browser supports it.
+- **Speed:** Very Slow, Slow, Medium (default), Fast. Vertical is 30 / 48 / 80 / 130 lines a minute; the ticker uses 300 / 480 / 900 / 1620 characters a minute.
+- **Text size:** S / M / L / XL. In ticker mode the line is a share of viewport height (3 / 4.25 / 5.75 / 7.5 vh).
+- **Commentary:** No commentary (default), Matthew Henry, or Calvin. A note follows the last verse it covers in your range (each section once per loop); in ticker mode commentary runs on a second line after the verses. If the chosen commentary has no file for a book, the settings page says so and verses keep scrolling.
 - Settings are saved in this browser's localStorage (`bible_scroller.v1`) only. The app still runs if storage is blocked.
+
+## Quality checks
+
+- `npm run build` runs `tsc --noEmit` before Vite; `npm test` runs vitest (including a multi-book smoke across OT / NT / Apocrypha and edition switches when `data/` is present).
+- The built `dist/index.html` and CSS are checked with the W3C Nu HTML Checker and the W3C CSS Validator (profile css3svg): 0 errors.
+- Release zips are attached to GitHub releases with a `SHA256SUMS` file; the zip itself is git-ignored.
 
 ## Not included
 

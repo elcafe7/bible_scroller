@@ -1,13 +1,14 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#ffffff" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#ffffff">
     <script>try{var t=JSON.parse(localStorage.getItem("bible_scroller.v1")||"null");document.documentElement.dataset.theme=t&&t.theme==="dark"?"dark":"light"}catch(e){document.documentElement.dataset.theme="light"}</script>
     <title>Scroll</title>
-    <link rel="stylesheet" href="./src/style.css" />
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="./src/style.css">
   </head>
   <body class="state-stopped mode-vertical">
     <main id="stage" aria-label="Scrolling passage" hidden>
@@ -47,32 +48,32 @@
       <div class="options">
         <div class="commentary-opt">
           <div class="commentary" role="radiogroup" aria-label="Commentary">
-            <button type="button" role="radio" data-commentary="none">No commentary</button>
-            <button type="button" role="radio" data-commentary="henry">Matthew Henry</button>
-            <button type="button" role="radio" data-commentary="calvin">Calvin</button>
+            <button type="button" role="radio" aria-checked="false" data-commentary="none">No commentary</button>
+            <button type="button" role="radio" aria-checked="false" data-commentary="henry">Matthew Henry</button>
+            <button type="button" role="radio" aria-checked="false" data-commentary="calvin">Calvin</button>
           </div>
           <p class="toggle-hint">Commentary comes in chunks (often several verses), not after every verse.</p>
           <p class="toggle-hint henry-na" id="henry-na" hidden></p>
         </div>
         <div class="speed" role="radiogroup" aria-label="Speed">
-          <button type="button" role="radio" data-speed="very-slow">Very Slow</button>
-          <button type="button" role="radio" data-speed="slow">Slow</button>
-          <button type="button" role="radio" data-speed="medium">Medium</button>
-          <button type="button" role="radio" data-speed="fast">Fast</button>
+          <button type="button" role="radio" aria-checked="false" data-speed="very-slow">Very Slow</button>
+          <button type="button" role="radio" aria-checked="false" data-speed="slow">Slow</button>
+          <button type="button" role="radio" aria-checked="false" data-speed="medium">Medium</button>
+          <button type="button" role="radio" aria-checked="false" data-speed="fast">Fast</button>
         </div>
         <div class="size" role="radiogroup" aria-label="Text size">
-          <button type="button" role="radio" data-size="s" aria-label="Small text">A</button>
-          <button type="button" role="radio" data-size="m" aria-label="Medium text">A</button>
-          <button type="button" role="radio" data-size="l" aria-label="Large text">A</button>
-          <button type="button" role="radio" data-size="xl" aria-label="Extra large text">A</button>
+          <button type="button" role="radio" aria-checked="false" data-size="s" aria-label="Small text">A</button>
+          <button type="button" role="radio" aria-checked="false" data-size="m" aria-label="Medium text">A</button>
+          <button type="button" role="radio" aria-checked="false" data-size="l" aria-label="Large text">A</button>
+          <button type="button" role="radio" aria-checked="false" data-size="xl" aria-label="Extra large text">A</button>
         </div>
         <div class="theme" role="radiogroup" aria-label="Theme">
-          <button type="button" role="radio" data-theme-choice="light">Light</button>
-          <button type="button" role="radio" data-theme-choice="dark">Dark</button>
+          <button type="button" role="radio" aria-checked="false" data-theme-choice="light">Light</button>
+          <button type="button" role="radio" aria-checked="false" data-theme-choice="dark">Dark</button>
         </div>
         <div class="mode" role="radiogroup" aria-label="Scroll mode">
-          <button type="button" role="radio" data-mode="vertical">Vertical</button>
-          <button type="button" role="radio" data-mode="horizontal">Ticker</button>
+          <button type="button" role="radio" aria-checked="false" data-mode="vertical">Vertical</button>
+          <button type="button" role="radio" aria-checked="false" data-mode="horizontal">Ticker</button>
         </div>
       </div>
 

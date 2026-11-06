@@ -240,7 +240,11 @@ async function ensureCommentaryMap(bookId: string): Promise<Map<string, HenryBoo
   const map = new Map<string, HenryBook | null>();
   if (c === "none") return map;
   const k = `${c}:${bookId}`;
-  if (!commentaryCache.has(k)) commentaryCache.set(k, await loader.loadCommentaryBook(c, bookId));
+  if (!commentaryCache.has(k)) {
+    // Skip the request when the commentary's meta says it has no file for this book (avoids a 404).
+    const avail = commentaryAvail.get(c);
+    commentaryCache.set(k, avail && !avail.has(bookId) ? null : await loader.loadCommentaryBook(c, bookId));
+  }
   map.set(bookId, commentaryCache.get(k)!);
   return map;
 }
@@ -344,9 +348,43 @@ function openPicker() {
   picker.open({ book_id: r.book_id, start: r.start, edition_id: prefs.edition });
 }
 
+/**
+ * WAI-ARIA radio group keyboard pattern: one tab stop per group (the checked radio),
+ * Arrow keys / Home / End move and select. Call syncRovingTabs() after aria-checked changes.
+ */
+function syncRovingTabs() {
+  for (const g of document.querySelectorAll<HTMLElement>('[role="radiogroup"]')) {
+    const radios = [...g.querySelectorAll<HTMLButtonElement>('[role="radio"]')];
+    const checked = radios.find((r) => r.getAttribute("aria-checked") === "true") ?? radios[0];
+    for (const r of radios) r.tabIndex = r === checked ? 0 : -1;
+  }
+}
+function wireRadioKeys() {
+  for (const g of document.querySelectorAll<HTMLElement>('[role="radiogroup"]')) {
+    g.addEventListener("keydown", (e) => {
+      const radios = [...g.querySelectorAll<HTMLButtonElement>('[role="radio"]')];
+      const i = radios.indexOf(e.target as HTMLButtonElement);
+      if (i < 0) return;
+      let j = -1;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") j = (i + 1) % radios.length;
+      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") j = (i - 1 + radios.length) % radios.length;
+      else if (e.key === "Home") j = 0;
+      else if (e.key === "End") j = radios.length - 1;
+      if (j < 0) return;
+      e.preventDefault();
+      radios[j]!.focus();
+      radios[j]!.click();
+    });
+  }
+}
+
 function wire() {
   fullscreen.init(() => stop());
   wakelock.init();
+  wireRadioKeys();
+  document.addEventListener("click", (e) => {
+    if ((e.target as Element | null)?.closest?.('[role="radio"]')) syncRovingTabs();
+  });
   passageBtn.addEventListener("click", () => openPicker());
   for (const b of commentaryBtns) b.addEventListener("click", () => { henryNoticeShown = false; setCommentary(b.dataset.commentary as Commentary); });
   for (const b of sizeBtns) b.addEventListener("click", () => setSize(b.dataset.size as FontSize));
@@ -434,6 +472,7 @@ async function boot() {
   applyTheme(prefs.theme);
   applyModeUi(prefs.mode);
   updatePlayLabel();
+  syncRovingTabs();
 }
 
 void boot();
