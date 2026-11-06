@@ -15,8 +15,6 @@ export const SPEED_CPM: Record<Speed, number> = { slow: 480, medium: 900, fast: 
 
 export interface ScrollerSource {
   next(): LoopItem | null;
-  /** True when the next next() yields a pending commentary note (pair with prior verse in ticker). */
-  hasPendingCommentary?: () => boolean;
 }
 
 function el(tag: string, cls?: string, text?: string) {
@@ -86,34 +84,29 @@ function renderHorizontalHenry(item: Extract<LoopItem, { kind: "henry" }>): HTML
   return row;
 }
 
-/** Standalone ticker item. Commentary alone is one henry-row (ref + body). */
+/**
+ * Ticker item — one after another (same order as vertical LoopCursor).
+ * Verses use the verse line only; commentary uses the second line after passages finish.
+ */
 function renderHorizontalItem(item: LoopItem): HTMLElement {
   if (item.kind === "verse") {
     const n = el("article", "item verse");
-    const row = renderHorizontalVerse(item);
-    n.append(row.querySelector(".ref")!, row.querySelector(".body")!);
+    n.append(renderHorizontalVerse(item));
     return n;
   }
-  const n = el("aside", "item henry");
+  // Commentary phase: discreet range ref on line 1, note on line 2 (not paired under a live verse).
+  const n = el("aside", "item henry ticker-stack");
   n.setAttribute("aria-label", commentaryName);
-  n.append(renderHorizontalHenry(item));
-  return n;
-}
-
-/** Verse on top, commentary on the line below — one scrolling unit. */
-function renderHorizontalPair(
-  verse: Extract<LoopItem, { kind: "verse" }>,
-  note: Extract<LoopItem, { kind: "henry" }>,
-): HTMLElement {
-  const n = el("div", "item pair ticker-stack");
-  n.setAttribute("aria-label", `${verse.book} ${verse.chapter}:${verse.verse}, then ${commentaryName}`);
-  n.append(renderHorizontalVerse(verse), renderHorizontalHenry(note));
+  const span = item.verse_start === item.verse_end ? `${item.verse_start}` : `${item.verse_start}–${item.verse_end}`;
+  const orient = el("div", "ticker-row verse-row ticker-orient");
+  orient.append(el("span", "ref", `${item.book} ${item.chapter}:${span}`));
+  n.append(orient, renderHorizontalHenry(item));
   return n;
 }
 
 /**
  * Continuous rAF scroll. Vertical mode: virtual column of passage blocks.
- * Horizontal mode: one line at a time — a single marquee item fully exits before the next enters.
+ * Horizontal mode: one marquee item at a time (verse line, then commentary line after passages).
  */
 export class Scroller {
   private pos = 0; // y in vertical mode, x in horizontal
@@ -257,17 +250,8 @@ export class Scroller {
     if (this.track.childElementCount > 0) return;
     const item = this.source.next();
     if (!item) return;
-    // Pair last covered verse with its pending commentary on a second ticker line.
-    if (
-      item.kind === "verse" &&
-      this.source.hasPendingCommentary?.()
-    ) {
-      const note = this.source.next();
-      if (note && note.kind === "henry") {
-        this.track.append(renderHorizontalPair(item, note));
-        return;
-      }
-    }
+    // Same LoopCursor order as vertical: verses first, then commentary chunks one-after-another.
+    // Do not pair commentary under a verse — line 2 is unused until a henry item arrives.
     this.track.append(renderItem(item, "horizontal"));
   }
 

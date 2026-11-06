@@ -122,8 +122,8 @@ body.mode-horizontal .item {
   display: inline-flex;
   align-items: baseline;
   gap: 0.85em;
-  /* Scale off --verse-size so S–XL matches vertical. */
-  font-size: calc(var(--verse-size) * 0.86);
+  /* Ticker type is a share of viewport height (see size-* overrides below). */
+  font-size: var(--ticker-verse);
 }
 body.mode-horizontal .item .ref {
   display: inline;
@@ -138,20 +138,26 @@ body.mode-horizontal .henry {
   padding-left: 0;
   border-left: 0;
   margin-top: 0;
-  font-size: calc(var(--verse-size) * 0.74);
+  font-size: var(--ticker-henry);
   opacity: 0.92;
 }
 body.mode-horizontal .henry .ref { font-size: 0.55em; }
 
-/* Two-line ticker: verse on top, commentary below (one scrolling unit). */
-body.mode-horizontal .item.ticker-stack,
-body.mode-horizontal .item.pair {
+/*
+ * Ticker layout: verses use the verse line only; after passages finish, commentary
+ * items use the second line (henry-row), one after another — not paired under a verse.
+ */
+body.mode-horizontal .item.ticker-stack {
   display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
   gap: 0.35em;
   white-space: normal;
+  font-size: var(--ticker-verse); /* orient ref scales with verse line */
+}
+body.mode-horizontal .item.verse .ticker-row.verse-row {
+  font-size: 1em;
 }
 body.mode-horizontal .ticker-row {
   display: inline-flex;
@@ -161,10 +167,12 @@ body.mode-horizontal .ticker-row {
   max-width: none;
 }
 body.mode-horizontal .ticker-row .body { white-space: pre; }
+body.mode-horizontal .ticker-orient .ref {
+  opacity: 0.7;
+}
 body.mode-horizontal .henry-row {
-  font-size: 0.86em;
+  font-size: var(--ticker-henry);
   opacity: 0.92;
-  padding-left: 0.15em;
   border-left: 2px solid var(--rule);
   padding-left: 0.65em;
 }
@@ -321,9 +329,35 @@ body.size-s { --verse-size: clamp(1.05rem, 0.8rem + 1.1vw, 1.7rem); }
 body.size-l { --verse-size: clamp(1.6rem, 1.15rem + 2vw, 2.7rem); }
 body.size-xl { --verse-size: clamp(2rem, 1.4rem + 2.6vw, 3.4rem); }
 
-/* Ticker-only XL: large ambient read-from-across-the-room size (vertical XL unchanged). */
-body.mode-horizontal.size-xl .item { font-size: clamp(2.6rem, 1.2rem + 5.2vw, 5.75rem); }
-body.mode-horizontal.size-xl .henry { font-size: clamp(2.2rem, 1rem + 4.4vw, 4.9rem); }
+/*
+ * Ticker font size = proportion of viewport height (vertical --verse-size rem clamps unchanged).
+ * S–XL map to shares of the screen so fullscreen ticker scales with the display.
+ * Floors keep phone-landscape readable. Commentary ~85% of the verse line.
+ *   S  = 3vh   / 2.55vh
+ *   M  = 4.25vh / 3.6vh   (default)
+ *   L  = 5.75vh / 4.9vh
+ *   XL = 7.5vh / 6.4vh
+ */
+body.mode-horizontal {
+  --ticker-verse: max(1.05rem, 4.25vh);
+  --ticker-henry: max(0.9rem, 3.6vh);
+}
+body.mode-horizontal.size-s {
+  --ticker-verse: max(0.95rem, 3vh);
+  --ticker-henry: max(0.82rem, 2.55vh);
+}
+body.mode-horizontal.size-m {
+  --ticker-verse: max(1.05rem, 4.25vh);
+  --ticker-henry: max(0.9rem, 3.6vh);
+}
+body.mode-horizontal.size-l {
+  --ticker-verse: max(1.2rem, 5.75vh);
+  --ticker-henry: max(1.02rem, 4.9vh);
+}
+body.mode-horizontal.size-xl {
+  --ticker-verse: max(1.35rem, 7.5vh);
+  --ticker-henry: max(1.15rem, 6.4vh);
+}
 
 /* ---------- Word-style passage button + picker ---------- */
 .sr-only {

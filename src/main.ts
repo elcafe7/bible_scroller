@@ -212,7 +212,6 @@ async function ensureCommentary() {
 function makeSource() {
   return {
     next: () => cursor!.next(prefs.commentary !== "none"),
-    hasPendingCommentary: () => prefs.commentary !== "none" && !!cursor?.hasPending(),
   };
 }
 

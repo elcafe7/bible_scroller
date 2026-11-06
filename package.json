@@ -13,6 +13,7 @@
     "pack": "npm run build && node scripts/pack-zip.mjs"
   },
   "devDependencies": {
+    "happy-dom": "^20.14.6",
     "typescript": "^5.9.3",
     "vite": "^8.3.6",
     "vitest": "^5.1.0"
