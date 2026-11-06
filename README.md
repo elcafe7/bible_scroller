@@ -1,93 +1,91 @@
-# bible_scroller
+<div align="center">
 
-**License: MIT** — see [`LICENSE`](LICENSE) (Copyright (c) 2026 elcafe7). Bible text and commentary data are public domain.
+# Scroll
 
-Private ambient Bible verse scroller: pick a Geneva 1599, KJV 1611, or KJV Oxford 1769 passage, scroll it continuously (vertical or ticker), optionally followed by Matthew Henry or Calvin commentary. Ships as a downloadable offline zip (TypeScript/JS client, no PHP, no server-only features), in the same spirit as Word and Verse.
+**Scroll is a leisurely bible reading app.**
+Let the Bible roll open past your screen at the pace you choose.
 
-**Spec (source of truth):** [`docs/specs/bible-scroller.md`](docs/specs/bible-scroller.md)
+[**Try it online**](https://apocalypse.press/scroll/) · [**Download for offline use**](https://github.com/elcafe7/bible_scroller/releases/download/v0.1.0/bible_scroller-0.1.0.zip) · [Word](https://apocalypse.press/word/) · [Verse](https://apocalypse.press/verse/)
 
-## Requirements (author machine only)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-- Node 22.13+ (uses the built-in `node:sqlite` to read Lex databases at build time)
-- Lex CLI data on this machine for the full canon (see below). The shipped zip needs no Node, PHP, or server.
+<sub>A project of <a href="https://jesuspeoplesf.com">Jesus People SF</a> &amp; <a href="https://apocalypse.press">Apocalypse Press</a></sub>
+
+<img src="readme-assets/scroll-phone.png" alt="Scroll on a phone: Psalm 23 in the Geneva Bible scrolling up the screen, verse by verse, fading in at the bottom and out at the top" width="300">
+
+</div>
+
+---
+
+## What it does
+
+- **Three Bibles:** Geneva Bible (1599), King James Version (1611 original), and King James Version (Oxford 1769). The Geneva and 1611 editions include the Apocrypha.
+- **Commentary if you want it:** Matthew Henry or John Calvin, shown after each section of verses it covers.
+- **Two ways to read:** a slow vertical scroll, or a one-line ticker across the screen.
+- **Your pace:** Very Slow, Slow, Medium, or Fast; four text sizes; light or dark.
+- **Starts anywhere:** pick a book, chapter, and verse. It reads to the end of the book, then loops.
+- **Stays awake:** the screen stays on while it scrolls (where the browser allows it).
+
+<p align="center">
+  <img src="readme-assets/scroll-welcome.png" alt="The Scroll setup screen with the first-visit welcome card: Scroll is a leisurely bible reading app; add commentary from Matthew Henry or John Calvin; take Scroll offline" width="420">
+</p>
+
+<p align="center">
+  <img src="readme-assets/scroll-ticker.png" alt="Ticker mode: John 3:17 in the Geneva Bible moving across the screen on one line" width="720">
+</p>
+
+<p align="center">
+  <img src="readme-assets/scroll-dark.png" alt="Dark theme: John Calvin's commentary on John 1 scrolling after the verses" width="600">
+</p>
+
+## Download for offline use
+
+**[bible_scroller-0.1.0.zip](https://github.com/elcafe7/bible_scroller/releases/download/v0.1.0/bible_scroller-0.1.0.zip)** (~24.5 MB) · [SHA256SUMS](https://github.com/elcafe7/bible_scroller/releases/download/v0.1.0/SHA256SUMS) · [release page](https://github.com/elcafe7/bible_scroller/releases/tag/v0.1.0)
+
+It is just files: HTML, CSS, JavaScript, and the Bible and commentary text. Nothing to install, no account, no internet once downloaded.
+
+1. Unzip it. You get one `bible_scroller` folder.
+2. Open `bible_scroller/index.html` by double-clicking it.
+
+That's it. Keep `index.html` next to its `assets` and `data` folders. Settings are saved in your browser only.
+
+Or skip the download and read online at **[apocalypse.press/scroll](https://apocalypse.press/scroll/)**.
+
+## Controls
+
+| Action | How |
+|---|---|
+| Start, or resume where you stopped | **Start** / **Resume** |
+| Back to settings (pauses) | **Esc**, **Space**, or double-tap the text |
+| Start the passage over | **Restart** |
+| Choose a passage | Tap the passage box, then edition, book, chapter, verse (or type "John 3:16") |
+
+## Texts
+
+Bible text: Geneva Bible (1599), King James Version (1611 original, with Apocrypha), King James Version (Oxford 1769). Commentary: Matthew Henry, John Calvin. All public domain.
+
+## License
+
+App code is under the [MIT License](LICENSE), Copyright (c) 2026 elcafe7.
+
+---
+
+<details>
+<summary><b>Build from source</b> (only to change the app; not needed to use it)</summary>
+
+The app is TypeScript compiled to one plain JavaScript file. Authors rebuilding it need Node 22.13+ for the Vite build and the data export; readers never do.
 
 ```bash
 npm install
+npm run build-data   # Lex SQLite (read-only) -> data/**/*.json; needs the Lex databases on this machine
+npm run build        # tsc --noEmit + Vite -> dist/
+npm test             # vitest
+npm run pack         # -> bible_scroller-<version>.zip (data as data/**/*.json.js so it opens from file://)
+npm run stage-web -- <out>/scroll /scroll/   # web copy (data as .json) + .htaccess for apocalypse.press/scroll/
 ```
 
-## Build the data: `npm run build-data`
+- `data/` is generated and git-ignored; without it builds use the John 1 fixture. No `.db` files are ever committed or packed.
+- Online, the app fetches `data/**/*.json`. Offline, each file ships as a small `.json.js` script so the page works when opened straight from disk in every browser.
+- Spec: [`docs/specs/bible-scroller.md`](docs/specs/bible-scroller.md).
 
-Reads the Lex SQLite files **read-only** and writes consistent JSON to `data/geneva/**`, `data/kj16/**`, `data/kjv/**`, `data/henry/**`, and (via `build-calvin.mjs`) `data/calvin/**`. Geneva and KJ16 include Apocrypha from Lex; KJV stays Protestant 66. Henry chapter overviews are skipped.
-
-Sources, first hit wins (the script prints which it used):
-
-| Role | Path |
-|---|---|
-| Geneva | `$BIBLE_SCROLLER_GENEVA_DB`, then Lex `bible_versions/gen.db` |
-| KJ16 | `$BIBLE_SCROLLER_KJ16_DB`, then Lex `bible_versions/kj16.db` |
-| KJV | `$BIBLE_SCROLLER_KJV_DB`, then Lex `bible_versions/kjv.db` |
-| Henry | `$BIBLE_SCROLLER_HENRY_DB`, then Lex `commentaries/matthew_henry.db` |
-
-If neither is found it exits 2, prints the expected paths, and leaves `fixtures/john1/` alone. No network downloads.
-
-`data/` is generated and git-ignored (about 39 MB of JSON). `*.db` files are never committed or packed. Without `data/`, builds fall back to the John 1 fixture in `fixtures/john1/`.
-
-## Build, test, preview
-
-```bash
-npm run build      # type-check + Vite build to dist/ (copies data/ or the fixture into dist/data)
-npm test           # vitest: loader, range resolution, Henry matching, prefs, failure cases
-npx serve dist     # preview at the printed address
-```
-
-## Package the offline zip: `npm run pack`
-
-```bash
-npm run build-data   # once, for the full canon
-npm run pack         # -> bible_scroller-0.1.0.zip
-```
-
-The zip unpacks to one `bible_scroller/` folder with `index.html`, `assets/`, `data/`, `LICENSE` (MIT), and a short `README.txt`. Inside the zip the welcome card's offline sentence is plain text and the footer download line is removed (the zip would otherwise link to itself). The packer refuses `.db`, `.env`, keys, `node_modules`, and `.git`.
-
-## Open it (unzip and open)
-
-1. Unzip `bible_scroller-0.1.0.zip` and open `bible_scroller/index.html`.
-2. **Local static server fallback:** Firefox runs it from `file://`; Chrome and Edge block JSON loads from `file://`. If the page says "Bible data missing or unreadable", serve the folder (still fully offline):
-
-   ```bash
-   cd bible_scroller
-   python3 -m http.server 8000   # then open http://localhost:8000/
-   # or: npx serve .
-   ```
-
-## Using the scroller
-
-- **Passage:** pick Start book + chapter:verse (OT / NT / Apocrypha groups). Scroll reads to the end of that book, then loops. Editions: **Geneva 1599** and **KJV 1611** (with Apocrypha), **KJV Oxford 1769** (Protestant 66 only, no Apocrypha group). First run starts on John 3:16 when available.
-- **Settings vs scroll:** Settings is a normal page (not an overlay). **Start** / **Resume** opens a full-screen scroll (Fullscreen API when the browser allows it, otherwise a CSS full-viewport fallback). **Esc**, **Space**, or a **double-tap** on the passage returns to settings and freezes the place so Resume can continue. **Restart** resets to the start of the range and enters scroll again.
-- **Mode:** Vertical (default) is the full-screen ambient column. Ticker is a horizontal marquee — verses on line 1, then commentary on line 2, one item at a time, looping the chosen range.
-- **Wake lock:** the screen stays awake while scrolling where the browser supports it.
-- **Speed:** Very Slow, Slow, Medium (default), Fast. Vertical is 30 / 48 / 80 / 130 lines a minute; the ticker uses 300 / 480 / 900 / 1620 characters a minute.
-- **Text size:** S / M / L / XL. In ticker mode the line is a share of viewport height (3 / 4.25 / 5.75 / 7.5 vh).
-- **Commentary:** No commentary (default), Matthew Henry, or Calvin. A note follows the last verse it covers in your range (each section once per loop); in ticker mode commentary runs on a second line after the verses. If the chosen commentary has no file for a book, the settings page says so and verses keep scrolling.
-- **Welcome card:** first visit shows a short welcome card; Continue, ✕, Esc, or a backdrop click dismisses it and stores `bible_scroller.welcome-seen=1` so it does not show again in that browser.
-- Settings are saved in this browser's localStorage (`bible_scroller.v1`) only. The app still runs if storage is blocked.
-
-## Stage the public web copy: `npm run stage-web`
-
-```bash
-npm run stage-web -- /path/to/out/scroll /scroll/
-```
-
-Builds, then writes `index.html`, `assets/`, `data/`, `LICENSE`, and an `.htaccess` for a static app under `/scroll/` (apocalypse.press). Normal caching: hashed bundles immutable for a year, data JSON and LICENSE one day, `index.html` revalidates. The welcome card's offline sentence and a footer line link the public GitHub release zip (`https://github.com/elcafe7/bible_scroller/releases/download/v<version>/bible_scroller-<version>.zip`); upload it with `npm run pack` + the release before staging a new version. A CSP allows only same-origin plus the inline theme script by hash (and Cloudflare Insights). No PHP. Deploying is a separate, approved step.
-
-## Quality checks
-
-- `npm run build` runs `tsc --noEmit` before Vite; `npm test` runs vitest (including a multi-book smoke across OT / NT / Apocrypha and edition switches when `data/` is present).
-- The built `dist/index.html` and CSS are checked with the W3C Nu HTML Checker and the W3C CSS Validator (profile css3svg): 0 errors.
-- Release zips are attached to GitHub releases with a `SHA256SUMS` file; the zip itself is git-ignored.
-
-## Not included
-
-- **No poeta deploy.** Nothing here publishes to poeta.icu. A live demo waits on Nate's yes.
-- No PHP, no remote APIs, no password gate, no Lex CLI / Lex Web changes.
-- Do not put secrets, tokens, or Lex SQLite databases in this repo; ship rebuilt JSON only.
+</details>

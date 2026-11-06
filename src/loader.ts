@@ -11,19 +11,60 @@ export class DataError extends Error {
 
 export type FetchLike = (url: string) => Promise<{ ok: boolean; status?: number; json(): Promise<unknown> }>;
 
+/**
+ * Loads `<base>/<path>.js` (a wrapper that assigns the parsed JSON to the global registry)
+ * and resolves with the registered value, or undefined when the file is missing.
+ */
+export type ScriptLoader = (src: string, key: string) => Promise<unknown | undefined>;
+
 export interface LoaderOptions {
   /** Base URL/path of the data folder, relative to the page. */
   base?: string;
   fetch?: FetchLike;
+  /** file:// fallback (Chrome/Edge block fetch() of local files; classic <script src> still works). */
+  script?: ScriptLoader;
+  /** Try the script wrapper first (default: when the page is opened from file://). */
+  preferScript?: boolean;
 }
+
+/** Global the offline zip's data/*.json.js wrappers assign into: __SCROLL_DATA__["geneva/meta.json"] = {...}. */
+export const DATA_REGISTRY = "__SCROLL_DATA__";
+
+type Registry = Record<string, unknown>;
+const registry = (): Registry => {
+  const g = globalThis as unknown as Record<string, Registry | undefined>;
+  return (g[DATA_REGISTRY] ??= {});
+};
+
+/** Default ScriptLoader: inject a classic <script src>, read and clear the registry entry. */
+export const domScriptLoader: ScriptLoader = (src, key) =>
+  new Promise((resolve) => {
+    if (typeof document === "undefined") { resolve(undefined); return; }
+    const reg = registry();
+    if (key in reg) { const v = reg[key]; delete reg[key]; resolve(v); return; }
+    const el = document.createElement("script");
+    el.src = src;
+    el.async = true;
+    const done = () => {
+      el.remove();
+      const v = reg[key];
+      delete reg[key];
+      resolve(v);
+    };
+    el.onload = done;
+    el.onerror = done;
+    document.head.append(el);
+  });
 
 const SAFE_ID = /^[a-z0-9_]+$/;
 
 export function createLoader(opts: LoaderOptions = {}) {
   const base = (opts.base ?? "data").replace(/\/+$/, "");
   const doFetch: FetchLike = opts.fetch ?? ((url) => fetch(url));
+  const doScript: ScriptLoader = opts.script ?? domScriptLoader;
+  const preferScript = opts.preferScript ?? (typeof location !== "undefined" && location.protocol === "file:");
 
-  async function getJson(path: string): Promise<unknown | undefined> {
+  async function viaFetch(path: string): Promise<unknown | undefined> {
     let res;
     try {
       res = await doFetch(`${base}/${path}`);
@@ -36,6 +77,23 @@ export function createLoader(opts: LoaderOptions = {}) {
     } catch {
       return undefined;
     }
+  }
+  async function viaScript(path: string): Promise<unknown | undefined> {
+    try {
+      return await doScript(`${base}/${path}.js`, path);
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * JSON over fetch (https web copy ships data/*.json); if that fails, the sibling
+   * data/*.json.js wrapper (offline zip ships only those, so file:// works in every browser).
+   * From file:// the wrapper is tried first so Chrome/Edge never log blocked fetches.
+   */
+  async function getJson(path: string): Promise<unknown | undefined> {
+    if (preferScript) return (await viaScript(path)) ?? (await viaFetch(path));
+    return (await viaFetch(path)) ?? (await viaScript(path));
   }
 
   async function loadEditionMeta(dir: string): Promise<GenevaMeta> {

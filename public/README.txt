@@ -4,13 +4,10 @@ Editions: Geneva 1599, KJV 1611 (both with Apocrypha), KJV Oxford 1769 (66 books
 Commentary: none, Matthew Henry, or Calvin.
 
 Open it
-  1. Double-click index.html. Firefox (and usually Safari) runs it
-     directly from the folder.
-  2. Chrome and Edge block local data files opened as file://.
-     If you see "Bible data missing or unreadable", serve this folder
-     instead (still fully offline):
-        python3 -m http.server 8000      then open http://localhost:8000/
-     or npx serve .                       then open the printed address
+  Unzip the whole folder, then double-click index.html. It runs straight
+  from the files in any modern browser (Chrome, Edge, Firefox, Safari):
+  no internet, no install, no server. Keep index.html next to its
+  assets/ and data/ folders.
 
 Use it
   Choose a passage (edition, book, chapter, verse), commentary, speed,

@@ -440,7 +440,7 @@ async function boot() {
   } catch {
     $<HTMLElement>("boot").remove();
     const fileHelp = location.protocol === "file:"
-      ? "This browser blocks data files when a page is opened directly. Open the folder with a local static server instead (see README)."
+      ? "Keep index.html next to its data folder (unzip the whole bible_scroller folder), then open index.html again."
       : "";
     for (const n of chrome.querySelectorAll<HTMLElement>("fieldset, .options, #play, #restart")) n.hidden = true;
     showError("Bible data missing or unreadable.", fileHelp);
