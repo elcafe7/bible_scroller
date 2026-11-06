@@ -17,6 +17,20 @@ if (!existsSync(join(DIST, "index.html")) || !existsSync(join(DIST, "data/geneva
   process.exit(1);
 }
 
+/**
+ * Inside the offline copy the download link would point at a zip that is not there: keep the
+ * welcome-card sentence as plain text and drop the footer download line.
+ */
+function offlineHtml(html) {
+  const out = html
+    .replace(/[ \t]*<p class="offline-dl" data-offline-line>[\s\S]*?<\/p>\n/, "")
+    .replace(/<a class="welcome-offline" data-offline-link [^>]*>([\s\S]*?)<\/a>/, "$1");
+  if (/data-offline-link|data-offline-line/.test(out)) {
+    console.error("pack: could not strip offline download links from index.html"); process.exit(1);
+  }
+  return Buffer.from(out, "utf8");
+}
+
 function walk(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
     const p = join(dir, d.name);
@@ -34,7 +48,7 @@ const dosDate = (d) => (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) <<
 for (const f of files) {
   const name = TOP + relative(DIST, f).split(sep).join("/");
   if (FORBIDDEN.test(name)) { console.error(`pack: forbidden file in dist: ${name}`); process.exit(1); }
-  const raw = readFileSync(f);
+  const raw = name === TOP + "index.html" ? offlineHtml(readFileSync(f, "utf8")) : readFileSync(f);
   const def = deflateRawSync(raw, { level: 9 });
   const useDeflate = def.length < raw.length;
   const data = useDeflate ? def : raw;

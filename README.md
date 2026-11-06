@@ -45,7 +45,7 @@ npm run build-data   # once, for the full canon
 npm run pack         # -> bible_scroller-0.1.0.zip
 ```
 
-The zip unpacks to one `bible_scroller/` folder with `index.html`, `assets/`, `data/`, and a short `README.txt`. The packer refuses `.db`, `.env`, keys, `node_modules`, and `.git`.
+The zip unpacks to one `bible_scroller/` folder with `index.html`, `assets/`, `data/`, and a short `README.txt`. Inside the zip the welcome card's offline sentence is plain text and the footer download line is removed (the zip would otherwise link to itself). The packer refuses `.db`, `.env`, keys, `node_modules`, and `.git`.
 
 ## Open it (unzip and open)
 
@@ -76,7 +76,7 @@ The zip unpacks to one `bible_scroller/` folder with `index.html`, `assets/`, `d
 npm run stage-web -- /path/to/out/scroll /scroll/
 ```
 
-Builds, then writes `index.html`, `assets/`, `data/`, and an `.htaccess` for a static app under `/scroll/` (apocalypse.press). Normal caching: hashed bundles immutable for a year, data JSON one day, `index.html` revalidates. A CSP allows only same-origin plus the inline theme script by hash (and Cloudflare Insights). No PHP. Deploying is a separate, approved step.
+Packs (build + zip), then writes `index.html`, `assets/`, `data/`, `bible_scroller-<version>.zip`, `SHA256SUMS`, and an `.htaccess` for a static app under `/scroll/` (apocalypse.press). Normal caching: hashed bundles immutable for a year, data JSON and the zip one day, `index.html` revalidates. The welcome card's offline sentence and a footer line link `./bible_scroller-<version>.zip` (relative, so it works under `/scroll/`; the GitHub repo is private, so the public download is this site-hosted copy). A CSP allows only same-origin plus the inline theme script by hash (and Cloudflare Insights). No PHP. Deploying is a separate, approved step.
 
 ## Quality checks
 

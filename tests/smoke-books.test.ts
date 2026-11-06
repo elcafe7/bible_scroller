@@ -105,6 +105,15 @@ describe.skipIf(!hasFull)("smoke: full app boot in the DOM (picker + edition swi
       "Add commentary after each section from Matthew Henry or John Calvin should you wish.",
       "Take Scroll offline for distraction-free reading.",
     ]);
+    // Offline sentence links to the versioned zip (index.html placeholder, filled at build time).
+    const cardLink = dlg.querySelector<HTMLAnchorElement>("a.welcome-offline")!;
+    expect(cardLink.textContent).toBe("Take Scroll offline for distraction-free reading.");
+    expect(cardLink.getAttribute("href")).toBe("./%OFFLINE_ZIP%");
+    expect(cardLink.hasAttribute("download")).toBe(true);
+    const footLink = document.querySelector<HTMLAnchorElement>("#site-footer .offline-dl a")!;
+    expect(footLink.textContent).toBe("Take Scroll offline for distraction-free reading.");
+    expect(footLink.getAttribute("href")).toBe(cardLink.getAttribute("href"));
+    expect(footLink.hasAttribute("download")).toBe(true);
     (dlg.querySelector(".welcome-start") as HTMLButtonElement).click();
     expect(dlg.open).toBe(false);
     expect(localStorage.getItem("bible_scroller.welcome-seen")).toBe("1");

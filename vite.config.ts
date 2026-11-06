@@ -1,4 +1,4 @@
-import { cpSync, existsSync, rmSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 
@@ -13,6 +13,16 @@ function classicScript(): Plugin {
         .replace(/<script type="module" crossorigin src=/g, "<script defer src=")
         .replace(/ crossorigin(?=[ >])/g, "");
     },
+  };
+}
+
+const { version } = JSON.parse(readFileSync(resolve(import.meta.dirname, "package.json"), "utf8")) as { version: string };
+
+/** %OFFLINE_ZIP% in index.html -> bible_scroller-<version>.zip (welcome card + footer download link). */
+function offlineZipName(): Plugin {
+  return {
+    name: "offline-zip-name",
+    transformIndexHtml: (html) => html.replaceAll("%OFFLINE_ZIP%", `bible_scroller-${version}.zip`),
   };
 }
 
@@ -35,7 +45,7 @@ function copyData(): Plugin {
 
 export default defineConfig({
   base: "./",
-  plugins: [classicScript(), copyData()],
+  plugins: [offlineZipName(), classicScript(), copyData()],
   build: {
     outDir: "dist",
     emptyOutDir: true,

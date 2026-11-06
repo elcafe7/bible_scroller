@@ -11,7 +11,7 @@
     "build-data": "node --no-warnings scripts/build-data.mjs && node --no-warnings scripts/build-calvin.mjs",
     "test": "vitest run",
     "pack": "npm run build && node scripts/pack-zip.mjs",
-    "stage-web": "npm run build && node scripts/stage-web.mjs"
+    "stage-web": "npm run pack && node scripts/stage-web.mjs"
   },
   "devDependencies": {
     "happy-dom": "^20.14.6",

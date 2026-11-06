@@ -250,9 +250,12 @@ button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid 
 }
 #site-footer p { margin: 0; }
 #site-footer .shortcuts { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+#site-footer .offline-dl { flex-basis: 100%; order: 3; }
+#site-footer .offline-dl a,
 #site-footer .offline-note a {
   color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
 }
+#site-footer .offline-dl a:hover,
 #site-footer .offline-note a:hover { color: var(--accent-bright); text-decoration-thickness: 2px; }
 kbd {
   min-width: 22px; height: 22px; padding: 0 5px; display: inline-grid; place-items: center;
@@ -462,6 +465,10 @@ body.mode-horizontal.size-xl {
   content: ""; pointer-events: none; border-radius: 2px;
 }
 .welcome-card p { margin: 0; }
+.welcome-offline {
+  color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+}
+.welcome-offline:hover { text-decoration-thickness: 2px; }
 .welcome-title { margin: 0 40px 4px; font-family: var(--serif); font-size: 1.35rem; font-weight: 600; text-align: center; }
 .welcome-close {
   position: absolute; top: 14px; right: 14px; z-index: 1;
