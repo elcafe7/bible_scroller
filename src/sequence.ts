@@ -98,7 +98,9 @@ export class LoopCursor {
         };
       }
     }
-    return { kind: "verse", book: v.book, chapter: v.chapter, verse: v.verse, text: v.text };
+    const item: LoopItem = { kind: "verse", book: v.book, chapter: v.chapter, verse: v.verse, text: v.text };
+    if (isLast) item.loopEnd = true;
+    return item;
   }
 }
 

@@ -56,6 +56,12 @@ function measure(node: HTMLElement, track: HTMLElement): HTMLElement {
 }
 
 export function renderItem(item: LoopItem, mode: ScrollMode = "vertical"): HTMLElement {
+  const n = renderItemInner(item, mode);
+  if (item.kind === "verse" && item.loopEnd) n.dataset.loopEnd = "1";
+  return n;
+}
+
+function renderItemInner(item: LoopItem, mode: ScrollMode): HTMLElement {
   if (mode === "horizontal") return renderHorizontalItem(item);
   if (item.kind === "verse") {
     const n = el("article", "item verse");
@@ -134,6 +140,8 @@ export class Scroller {
   private leadInActive = false;
   private lastStageH = 0;
   playing = false;
+  /** Called once each time the range's last verse has scrolled fully out of view (one full loop). */
+  onLoopEnd: (() => void) | null = null;
 
   constructor(
     private stage: HTMLElement,
@@ -302,6 +310,7 @@ export class Scroller {
       const h = first.offsetHeight + parseFloat(getComputedStyle(first).marginBottom || "0");
       if (this.pos + h >= -this.stage.clientHeight * 0.25) break;
       first.remove();
+      if (first.dataset.loopEnd) this.onLoopEnd?.();
       this.pos += h;
       first = this.track.firstElementChild as HTMLElement | null;
     }
@@ -332,6 +341,7 @@ export class Scroller {
     // Fully past the left edge (with a small cushion).
     if (this.pos + w < -24) {
       first.remove();
+      if (first.dataset.loopEnd) this.onLoopEnd?.();
       this.pos = this.stage.clientWidth;
       this.spawnHorizontal();
     }
