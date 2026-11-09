@@ -140,6 +140,52 @@ gh attestation verify <file> -R elcafe7/bible_scroller
 osv-scanner scan source -L <sbom>.cdx.json        # re-scan against today's OSV data
 ```
 
+## Security reports (committed to `security/`)
+
+After a clean publish, the `security-report-commit` job commits
+`security/reports/<tag>_<YYYYMMDDTHHMMSSZ>/` (UTC) with `[skip ci]` on a new
+branch `reports/<tag>_<YYYYMMDDTHHMMSSZ>`, rebuilds `security/README.md` (all
+runs, newest first), `security/latest.json` and the README "Security reports"
+block on that branch, and opens a PR to the default branch. It never pushes to
+the default branch (the "Protect main" ruleset requires a PR). Merging the PR
+publishes the report in the index.
+
+| File | From |
+|---|---|
+| `summary.md` | Every check, its result, the date and time (UTC), links to the files below |
+| `osv-scan.json` / `osv-scan.md` | OSV-Scanner report (the release gate) |
+| `sbom.cdx.json` | CycloneDX SBOM |
+| `SHA256SUMS` | Checksums, re-verified when the report is written |
+| `attestation.md` | Build-provenance attestation link and `gh attestation verify` command |
+| `virustotal.md`, `virustotal-links.txt` | VirusTotal table and permalinks (only when VirusTotal is on) |
+| `scorecard.json` | The latest published OpenSSF Scorecard result (api.scorecard.dev) |
+| `socket.md`, `openssf-best-practices.md` | Only when `vars.SOCKET_URL` / `vars.BESTPRACTICES_PROJECT_ID` are set |
+| `verification.json`, `report.json` | Badge data and the index entry |
+
+How it is kept safe:
+
+- The report is written by `scripts/write_security_report.sh` in the release
+  job and handed to the commit job as the `security-report` artifact.
+- `security-report-commit` needs `release`, runs only when it succeeded, and
+  has `permissions: contents: write` (push the reports branch) and
+  `pull-requests: write` (open the PR), nothing else. It checks out the
+  default branch without stored credentials; `scripts/commit_security_report.sh`
+  pushes with `GITHUB_TOKEN` through `gh auth setup-git`.
+- Folder names come only from the allowlisted tag (`^[A-Za-z0-9._-]+$`, not
+  starting with `.` or `-`) plus a generated UTC timestamp. No `${{ }}` value
+  is expanded inside a `run:` script; everything is passed through `env:`.
+  Release names and bodies are never read.
+- `GITHUB_TOKEN` can only open the PR when **Settings > Actions > General >
+  Allow GitHub Actions to create and approve pull requests** is on. If it is
+  off, the job fails soft: the branch stays pushed, the `security-report`
+  artifact is kept, and a notice in the run gives the compare link to open the
+  PR by hand. (Turning the setting on is Nate's call; not changed here.)
+- Blocked runs publish nothing and commit nothing: the `blocked` job writes
+  the report and keeps it only as the `security-report-blocked` artifact.
+
+OpenSSF Best Practices and Socket.dev need accounts the maintainer creates
+by hand: [security/MANUAL-STEPS.md](../security/MANUAL-STEPS.md).
+
 ## Recommended repository settings (not applied; needs Nate's OK)
 
 These are recommendations only. The PR that added this file changed no

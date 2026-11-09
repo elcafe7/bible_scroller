@@ -9,6 +9,12 @@ Let the Bible roll open past your screen at the pace you choose.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/elcafe7/bible_scroller/badge)](https://scorecard.dev/viewer/?uri=github.com/elcafe7/bible_scroller)
+<!-- OpenSSF Best Practices badge slot: set PROJECT_ID and uncomment (security/MANUAL-STEPS.md)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/PROJECT_ID/badge)](https://www.bestpractices.dev/projects/PROJECT_ID)
+-->
+<!-- Socket.dev badge slot: set SOCKET_URL and uncomment (security/MANUAL-STEPS.md)
+[![Socket](https://img.shields.io/badge/Socket.dev-monitored-blue)](SOCKET_URL)
+-->
 
 <sub>A project of <a href="https://jesuspeoplesf.com">Jesus People SF</a> &amp; <a href="https://apocalypse.press">Apocalypse Press</a></sub>
 
@@ -95,6 +101,20 @@ osv-scanner scan source -L bible_scroller-<version>.cdx.json
 ```
 
 Releases published before the workflow existed have only `SHA256SUMS`.
+
+## Security reports
+
+Every clean release also opens a PR that adds a dated report folder,
+`security/reports/<tag>_<UTC timestamp>/`, with a `summary.md` (each check,
+its result, date and time in UTC) and one file per check: OSV-Scanner report,
+SBOM, SHA256SUMS, attestation link, VirusTotal links (when turned on) and the
+OpenSSF Scorecard JSON. Index of all runs, newest first:
+[security/README.md](security/README.md) (machine-readable:
+[security/latest.json](security/latest.json)).
+
+<!-- security-reports:start -->
+Latest: none yet. The first verified release adds its report here. All runs: [security/README.md](security/README.md).
+<!-- security-reports:end -->
 
 ## Controls
 
