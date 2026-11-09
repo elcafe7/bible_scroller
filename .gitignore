@@ -44,3 +44,5 @@ data/
 lex-data/
 notes/
 scan-report/
+__pycache__/
+*.pyc
