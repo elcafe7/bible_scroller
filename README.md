@@ -8,6 +8,7 @@ Let the Bible roll open past your screen at the pace you choose.
 [**Try it online**](https://apocalypse.press/scroll/) · [**Download for offline use**](https://github.com/elcafe7/bible_scroller/releases/download/v0.1.0/bible_scroller-0.1.0.zip) · [Word](https://apocalypse.press/word/) · [Verse](https://apocalypse.press/verse/)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/elcafe7/bible_scroller/badge)](https://scorecard.dev/viewer/?uri=github.com/elcafe7/bible_scroller)
 
 <sub>A project of <a href="https://jesuspeoplesf.com">Jesus People SF</a> &amp; <a href="https://apocalypse.press">Apocalypse Press</a></sub>
 
@@ -50,6 +51,50 @@ It is just files: HTML, CSS, JavaScript, and the Bible and commentary text. Noth
 That's it. Keep `index.html` next to its `assets` and `data` folders. Settings are saved in your browser only.
 
 Or skip the download and read online at **[apocalypse.press/scroll](https://apocalypse.press/scroll/)**.
+
+## Verification
+
+Releases built by [`.github/workflows/release.yml`](.github/workflows/release.yml)
+are built, scanned, checksummed and attested by GitHub Actions. Each such
+release on the [Releases page](https://github.com/elcafe7/bible_scroller/releases) has, next
+to the downloads:
+
+| File | What it is |
+|---|---|
+| `SHA256SUMS` | SHA-256 checksums for every file in the release |
+| `<name>.cdx.json` | CycloneDX SBOM (software bill of materials) |
+| `<name>-osv-scan.json` / `.md` | Dated OSV-Scanner report |
+| `verification.json` | Scan summary (tool, date, result, report link) for download pages |
+
+A release is only published when every check passes: OSV-Scanner finds no
+known vulnerabilities (CVSS 7.0 or higher fails the release, and lower-rated
+findings hold it too; advisories with no CVSS score are listed as warnings),
+the checksums verify, and VirusTotal (when turned on) flags nothing. If any
+check fails, nothing is published, and the findings with a suggested fix go
+to a "Release blocked" issue instead. Details:
+[docs/RELEASE_VERIFICATION.md](docs/RELEASE_VERIFICATION.md).
+
+**Check the checksums** (download the files plus `SHA256SUMS` into one folder):
+
+```bash
+sha256sum -c --ignore-missing SHA256SUMS        # Linux
+shasum -a 256 -c --ignore-missing SHA256SUMS    # macOS
+```
+
+**Check build provenance** with the [GitHub CLI](https://cli.github.com/).
+This confirms the file was built from this repository by GitHub Actions:
+
+```bash
+gh attestation verify bible_scroller-<version>.zip -R elcafe7/bible_scroller
+```
+
+**Re-scan against today's advisories** (the report is a dated record):
+
+```bash
+osv-scanner scan source -L bible_scroller-<version>.cdx.json
+```
+
+Releases published before the workflow existed have only `SHA256SUMS`.
 
 ## Controls
 

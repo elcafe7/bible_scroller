@@ -41,3 +41,6 @@ temp/
 data/
 *.db
 *.zip
+lex-data/
+notes/
+scan-report/
