@@ -13,7 +13,7 @@
     "pack": "npm run build && node scripts/pack-zip.mjs"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "vite": "^8.3.6",
     "vitest": "^5.1.0"
   },
