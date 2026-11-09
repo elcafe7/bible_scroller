@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { offlineHtml, OFFLINE_CARD_SENTENCE, ONLINE_OFFLINE_SENTENCE } from "../scripts/offline-html.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
-const ZIP = "https://github.com/elcafe7/bible_scroller/releases/tag/v0.1.0";
+const ZIP = "https://github.com/elcafe7/bible_scroller";
 const built = readFileSync(resolve(ROOT, "index.html"), "utf8").replaceAll("%OFFLINE_ZIP_URL%", ZIP);
 
 describe("offline zip index.html rewrite", () => {

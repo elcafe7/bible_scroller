@@ -18,9 +18,9 @@ describe("offline download link", () => {
     }
     expect(html).toContain('<p class="offline-dl" data-offline-line>');
   });
-  it("vite fills the placeholder with the public GitHub release page", async () => {
+  it("vite fills the placeholder with the public GitHub repo page", async () => {
     const { OFFLINE_ZIP_URL } = await import("../vite.config");
-    expect(OFFLINE_ZIP_URL).toBe(`https://github.com/elcafe7/bible_scroller/releases/tag/v${version}`);
+    expect(OFFLINE_ZIP_URL).toBe("https://github.com/elcafe7/bible_scroller");
     expect(version).toBe("0.1.0");
   });
   it("footer credits line links the MIT LICENSE shipped next to index.html", () => {
