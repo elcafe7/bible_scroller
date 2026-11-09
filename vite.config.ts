@@ -18,10 +18,10 @@ function classicScript(): Plugin {
 
 const { version } = JSON.parse(readFileSync(resolve(import.meta.dirname, "package.json"), "utf8")) as { version: string };
 
-/** Public GitHub release download for the offline zip (elcafe7/bible_scroller is public). */
-export const OFFLINE_ZIP_URL = `https://github.com/elcafe7/bible_scroller/releases/download/v${version}/bible_scroller-${version}.zip`;
+/** Public GitHub release page for the offline zip (elcafe7/bible_scroller is public). */
+export const OFFLINE_ZIP_URL = `https://github.com/elcafe7/bible_scroller/releases/tag/v${version}`;
 
-/** %OFFLINE_ZIP_URL% in index.html -> GitHub release zip (welcome card + footer download link). */
+/** %OFFLINE_ZIP_URL% in index.html -> GitHub release page (welcome card + footer offline link). */
 function offlineZipName(): Plugin {
   return {
     name: "offline-zip-name",

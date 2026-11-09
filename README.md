@@ -5,7 +5,7 @@
 **Scroll is a leisurely bible reading app.**
 Let the Bible roll open past your screen at the pace you choose.
 
-[**Try it online**](https://apocalypse.press/scroll/) · [**Download for offline use**](https://github.com/elcafe7/bible_scroller/releases/download/v0.1.0/bible_scroller-0.1.0.zip) · [Word](https://apocalypse.press/word/) · [Verse](https://apocalypse.press/verse/)
+[**Try it online**](https://apocalypse.press/scroll/) · [**Download for offline use**](https://github.com/elcafe7/bible_scroller/releases/tag/v0.1.0) · [Word](https://apocalypse.press/word/) · [Verse](https://apocalypse.press/verse/)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 

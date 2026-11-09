@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { offlineHtml, OFFLINE_CARD_SENTENCE, ONLINE_OFFLINE_SENTENCE } from "../scripts/offline-html.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
-const ZIP = "https://github.com/elcafe7/bible_scroller/releases/download/v0.1.0/bible_scroller-0.1.0.zip";
+const ZIP = "https://github.com/elcafe7/bible_scroller/releases/tag/v0.1.0";
 const built = readFileSync(resolve(ROOT, "index.html"), "utf8").replaceAll("%OFFLINE_ZIP_URL%", ZIP);
 
 describe("offline zip index.html rewrite", () => {
@@ -33,7 +33,7 @@ describe("offline zip index.html rewrite", () => {
     expect(footer).toContain('<a href="./LICENSE">MIT License</a> · <a href="https://jesuspeoplesf.com/donate/" target="_blank" rel="noopener noreferrer">Donate</a></p>');
   });
 
-  it("online index.html is untouched: card + footer link the GitHub zip", () => {
+  it("online index.html is untouched: card + footer link the GitHub release page", () => {
     expect(built.split(`href="${ZIP}"`).length - 1).toBe(2);
     expect(built).toContain(ONLINE_OFFLINE_SENTENCE);
     expect(built).not.toContain("donate");
