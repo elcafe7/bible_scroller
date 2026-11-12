@@ -42,11 +42,11 @@ if (html.split(`href="${zipUrl}"`).length - 1 !== 2) {
 
 const csp = [
   "default-src 'self'",
-  // GA4 (no Ads features) per Google's Tag Platform CSP guide; loader is external ./ga-ap.js (no new hash).
+  // GA4 page_view only (no Ads). Hosts match Verse's live CSP; loader is external ./ga-ap.js (no new hash).
   `script-src 'self' ${inline.join(" ")} https://static.cloudflareinsights.com https://www.googletagmanager.com`,
   "style-src 'self'",
-  "img-src 'self' data: https://www.googletagmanager.com https://*.google-analytics.com",
-  "connect-src 'self' https://cloudflareinsights.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
+  "img-src 'self' data: https://*.google-analytics.com https://www.googletagmanager.com",
+  "connect-src 'self' https://cloudflareinsights.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com",
   "object-src 'none'", "base-uri 'self'", "frame-ancestors 'none'", "form-action 'self'",
 ].join("; ");
 

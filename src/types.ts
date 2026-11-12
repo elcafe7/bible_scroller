@@ -61,7 +61,7 @@ export interface VerseRef {
 }
 
 export type LoopItem =
-  | { kind: "verse"; book: string; chapter: number; verse: number; text: string; /** last verse of the range (loop wraps after it) */ loopEnd?: boolean }
+  | { kind: "verse"; book: string; chapter: number; verse: number; text: string }
   | {
       kind: "henry";
       book: string;

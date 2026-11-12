@@ -8,7 +8,6 @@ import { setCommentaryName, Scroller } from "./scroller";
 import { LoopCursor } from "./sequence";
 import type { Commentary, FontSize, GenevaBook, GenevaMeta, HenryBook, Prefs, ScrollMode, Speed, Theme } from "./types";
 
-import { gaSpeed, track as gaTrack, trackCommentary, trackMode, trackSpeedChange } from "./ga";
 import * as wakelock from "./wakelock";
 import { createWelcome } from "./welcome";
 
@@ -56,27 +55,12 @@ let draft: Prefs["range"] | null = null;
 let picker: ReturnType<typeof createPassagePicker> | null = null;
 let welcome: ReturnType<typeof createWelcome> | null = null;
 
-/** reader_open fires once per applied range key per page lifetime. */
-const readerOpened = new Set<string>();
-/** Shared, non-personal GA context for the applied passage (book name + numbers + enums; never text). */
-function gaContext() {
-  const r = prefs.range;
-  return {
-    book_title: metaBook(r.book_id)?.book ?? r.book_id,
-    chapter: r.start.chapter,
-    edition: prefs.edition,
-    scroll_speed: gaSpeed(prefs.speed),
-    scroll_mode: prefs.mode,
-    commentary_source: prefs.commentary,
-  };
-}
-
 function showError(msg: string, help = "") {
   errorBox.querySelector(".error-msg")!.textContent = msg;
   errorBox.querySelector(".error-help")!.textContent = help;
   errorBox.hidden = false;
   body.classList.add("has-error");
-  stop(null);
+  stop();
 }
 function clearError() {
   errorBox.hidden = true;
@@ -302,13 +286,7 @@ async function applyStart(force = false): Promise<boolean> {
     henryNoticeShown = false;
     await ensureCommentary();
     const src = makeSource();
-    if (!scroller) {
-      scroller = new Scroller(stage, track, src, prefs.speed, prefs.mode);
-      scroller.onLoopEnd = () => {
-        const c = gaContext();
-        gaTrack("scroll_complete", { book_title: c.book_title, chapter: c.chapter, percent: 100 });
-      };
-    }
+    if (!scroller) scroller = new Scroller(stage, track, src, prefs.speed, prefs.mode);
     else {
       scroller.pause();
       scroller.setSource(src);
@@ -331,11 +309,7 @@ function beginRun() {
   updatePlayLabel();
   armIdle();
 }
-/** reason: "user" (Esc/Space/double-tap/fullscreen exit/Pause), "hidden" (tab hidden), null = not tracked (error). */
-function stop(reason: "user" | "hidden" | null = "user") {
-  if (running && reason) {
-    gaTrack("scroll_stop", { book_title: gaContext().book_title, reason });
-  }
+function stop() {
   running = false;
   firstTap = null;
   clearTimeout(idleTimer);
@@ -348,11 +322,10 @@ function stop(reason: "user" | "hidden" | null = "user") {
 }
 
 async function onPlay() {
-  if (running) { stop("user"); return; }
+  if (running) { stop(); return; }
   void fullscreen.enter();
   const dirty = startKey(pickerStart()) !== appliedKey;
-  const fresh = !scroller || dirty;
-  if (fresh) {
+  if (!scroller || dirty) {
     if (!(await applyStart())) {
       fullscreen.exit();
       showSettings();
@@ -360,16 +333,6 @@ async function onPlay() {
     }
   }
   beginRun();
-  const c = gaContext();
-  if (fresh) {
-    if (!readerOpened.has(appliedKey)) {
-      readerOpened.add(appliedKey);
-      gaTrack("reader_open", { book_title: c.book_title, reader_type: "scroll", chapter: c.chapter, edition: c.edition });
-    }
-    gaTrack("scroll_start", { ...c, reader_type: "scroll" });
-  } else {
-    gaTrack("scroll_resume", { book_title: c.book_title, scroll_speed: c.scroll_speed, scroll_mode: c.scroll_mode });
-  }
 }
 async function onRestart() {
   void fullscreen.enter();
@@ -379,17 +342,6 @@ async function onRestart() {
     return;
   }
   beginRun();
-  const c = gaContext();
-  gaTrack("scroll_restart", { book_title: c.book_title, chapter: c.chapter, scroll_speed: c.scroll_speed, scroll_mode: c.scroll_mode });
-}
-
-let lastFs: boolean | null = null;
-function onFullscreenChange() {
-  const d = document as Document & { webkitFullscreenElement?: Element | null };
-  const on = !!(document.fullscreenElement ?? d.webkitFullscreenElement);
-  if (on === lastFs || (lastFs === null && !on)) { lastFs = on; return; }
-  lastFs = on;
-  gaTrack("scroll_fullscreen", { fullscreen: on ? "on" : "off" });
 }
 
 function openPicker() {
@@ -429,47 +381,18 @@ function wireRadioKeys() {
 }
 
 function wire() {
-  fullscreen.init(() => stop("user"));
-  document.addEventListener("fullscreenchange", onFullscreenChange);
-  document.addEventListener("webkitfullscreenchange", onFullscreenChange);
-  // Outbound "Take Scroll offline" links (GitHub repo page): track, never block navigation.
-  // GA4 gtag has no transport_type field (it would be sent as a junk param); it already flushes
-  // queued hits with a keepalive request when the page is hidden/unloaded.
-  document.addEventListener("click", (e) => {
-    const a = (e.target as Element | null)?.closest?.<HTMLAnchorElement>("a[data-offline-link]");
-    if (!a) return;
-    gaTrack("offline_download", {
-      link_url: a.href,
-      placement: a.closest("#welcome") ? "welcome" : "footer",
-    });
-  });
+  fullscreen.init(() => stop());
   wakelock.init();
   wireRadioKeys();
   document.addEventListener("click", (e) => {
     if ((e.target as Element | null)?.closest?.('[role="radio"]')) syncRovingTabs();
   });
   passageBtn.addEventListener("click", () => openPicker());
-  for (const b of commentaryBtns) b.addEventListener("click", () => {
-    henryNoticeShown = false;
-    const c = b.dataset.commentary as Commentary;
-    const changed = prefs && prefs.commentary !== c;
-    setCommentary(c);
-    if (changed) trackCommentary(c);
-  });
+  for (const b of commentaryBtns) b.addEventListener("click", () => { henryNoticeShown = false; setCommentary(b.dataset.commentary as Commentary); });
   for (const b of sizeBtns) b.addEventListener("click", () => setSize(b.dataset.size as FontSize));
-  for (const b of speedBtns) b.addEventListener("click", () => {
-    const sp = b.dataset.speed as Speed;
-    const changed = prefs && prefs.speed !== sp;
-    setSpeed(sp);
-    if (changed) trackSpeedChange(sp);
-  });
+  for (const b of speedBtns) b.addEventListener("click", () => setSpeed(b.dataset.speed as Speed));
   for (const b of themeBtns) b.addEventListener("click", () => setTheme(b.dataset.themeChoice as Theme));
-  for (const b of modeBtns) b.addEventListener("click", () => {
-    const m = b.dataset.mode as ScrollMode;
-    const changed = prefs && prefs.mode !== m;
-    setMode(m);
-    if (changed) trackMode(m);
-  });
+  for (const b of modeBtns) b.addEventListener("click", () => setMode(b.dataset.mode as ScrollMode));
   playBtn.addEventListener("click", () => { void onPlay(); });
   restartBtn.addEventListener("click", () => { void onRestart(); });
   stage.addEventListener("pointerup", (ev) => {
@@ -478,7 +401,7 @@ function wire() {
     const cur = { t: ev.timeStamp, x: ev.clientX, y: ev.clientY };
     if (firstTap && cur.t - firstTap.t <= TAP_MS && Math.hypot(cur.x - firstTap.x, cur.y - firstTap.y) <= TAP_DIST) {
       firstTap = null;
-      stop("user");
+      stop();
       return;
     }
     firstTap = cur;
@@ -488,14 +411,14 @@ function wire() {
     if (picker?.isOpen()) return; // picker owns Escape
     if (welcome?.isOpen()) return; // welcome card owns its keys
     if (running) {
-      if (e.key === "Escape" || e.key === " " || e.code === "Space") { e.preventDefault(); stop("user"); }
+      if (e.key === "Escape" || e.key === " " || e.code === "Space") { e.preventDefault(); stop(); }
       return;
     }
     const tag = e.target;
     const inField = tag instanceof HTMLSelectElement || tag instanceof HTMLButtonElement || tag instanceof HTMLInputElement || tag instanceof HTMLTextAreaElement;
     if ((e.key === " " || e.code === "Space") && !inField) { e.preventDefault(); void onPlay(); }
   });
-  document.addEventListener("visibilitychange", () => { if (document.hidden && running) stop("hidden"); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && running) stop(); });
   window.addEventListener("resize", () => { scroller?.setSpeed(prefs.speed); scroller?.onResize(); });
 }
 
@@ -537,13 +460,6 @@ async function boot() {
     onSelect: (sel) => {
       if (sel.edition_id && sel.edition_id !== prefs.edition) setEdition(sel.edition_id);
       setDraft({ book_id: sel.book_id, start: sel.start });
-      const mb = canonBooks(metaFor(prefs.edition)).find((b) => b.book_id === sel.book_id);
-      if (mb) {
-        gaTrack("scroll_range_set", {
-          book_title: mb.book, chapter: sel.start.chapter, verse: sel.start.verse,
-          end_chapter: mb.chapters, end_verse: mb.verse_counts[mb.chapters - 1] || 1, edition: prefs.edition,
-        });
-      }
     },
   });
   for (const c of ["henry", "calvin"] as const) {
