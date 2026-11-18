@@ -12,7 +12,7 @@ Do not revisit.
 - **Default edition:** Geneva 1599 only in v1.
 - **Henry:** Off by default. Optional toggle enables verse → matching Henry note → next verse interchange. If a verse has no Henry section, show the verse only and continue (do not invent commentary).
 - **Range:** User picks a book or passage; the scroller **loops that range** (not whole-Bible default).
-- **Access / ship shape:** First deliverable is this private repo + downloadable zip. Live demo later may sit on poeta.icu with **no password**. No poeta deploy until Nate says yes.
+- **Access / ship shape:** First deliverable is this private repo + downloadable zip. A live demo may later be publicly hosted with **no password**. No deployment until Nate says yes.
 - **UI:** Full-screen ambient; pick range then hide chrome; controls on tap; **scroll-only** (no list mode); careful typography; reading-paced speeds (not ticker flash). At least three named speeds (e.g. slow / medium / fast), all slower than a stock ticker.
 - **Stack:** TypeScript/JS client from day one. Static assets only. Runs from `file://` or a local static server after unzip. **No PHP.** No server-exclusive APIs.
 - **Data at runtime:** Rebuilt **consistent JSON** for Bible and Henry. One client loader. Lex SQLite (if used) is **build-time only**, never shipped in the zip.
@@ -25,10 +25,10 @@ Do not revisit.
 - No Strong's, no multi-edition switcher in v1 (Geneva only).
 - No PHP, no Alpaca, no news/ticker feeds, no X/xAI.
 - No password gate in v1.
-- No poeta path creation or deploy until Nate's named yes.
+- No production path creation or deployment until Nate's named yes.
 - No Poole / Gill in this app v1 (tracked on Lex CLI #18 / Lex Web #5).
 - No inventing missing Bible or Henry text. Stub fixture (John 1) only for client development when full rebuild is not run.
-- No secrets, tokens, `.env`, Lex DB files, or `/etc/poeta-*` content in git or the zip.
+- No secrets, tokens, `.env`, Lex DB files, or host-configuration content in git or the zip.
 
 ## 4. Invariants and failure
 
@@ -248,7 +248,7 @@ Corrupt JSON → ignore and use first-run defaults (John 1 fixture range, henry 
 **Must not touch**
 
 - Lex CLI / Lex Web repositories or their release pipelines
-- Poeta VPS paths, nginx, cPanel, gate.php, `/etc/poeta-*`
+- Production-host paths, nginx, cPanel, gate.php, or host configuration
 - `/news/`, `/ticker/`, Word, Verse production trees for deploy
 - Committing `*.db`, `.env`, tokens, cookies, session files
 - Adding PHP, server routes, or paid API clients
@@ -355,7 +355,7 @@ npm run pack && unzip -l bible_scroller-0.1.0.zip | head -40 && unzip -l bible_s
 
 ### Task 8 — README usage
 
-**Steps:** README documents: how to `npm run build-data`, `npm run pack`, unzip and open, local static server fallback, Henry toggle, that poeta deploy is not included.
+**Steps:** README documents: how to `npm run build-data`, `npm run pack`, unzip and open, local static server fallback, Henry toggle, and that live deployment is not included.
 
 **Verify:** `test -f README.md && grep -q 'build-data' README.md && grep -q 'pack' README.md`
 
@@ -368,7 +368,7 @@ Observable checks only:
 3. `fixtures/john1` validates with the Task 2 python check.
 4. On a machine with Lex gen.db + matthew_henry.db: `npm run build-data` exits 0 and `data/geneva/meta.json` has ≥ 66 books; `data/geneva/john.json` verse 1:1 text is non-empty; `data/henry/john.json` has ≥ 1 section with non-null `verse_start`.
 5. `npm run pack` produces `bible_scroller-0.1.0.zip`; unzip listing includes `bible_scroller/index.html` and geneva meta; listing has no `.db` / `.env` / `node_modules`.
-6. Diff / tree touches only allowed surfaces (§7); no Lex repo changes; no poeta deploy artifacts.
+6. Diff / tree touches only allowed surfaces (§7); no Lex repo changes; no deployment artifacts.
 7. Default UI state: Henry toggle off; speed medium; no whole-Bible autoplay without a chosen range (first-run may preselect John 1 from fixture/meta).
 
 ## Open questions (do not block v1 skeleton)
