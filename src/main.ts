@@ -6,6 +6,7 @@ import { loadPrefs, loadTheme, peekEdition, savePrefs, safeStorage } from "./pre
 import { DEFAULT_EDITION_ID, EDITIONS, editionById, editionDir } from "./editions";
 import { setCommentaryName, Scroller } from "./scroller";
 import { LoopCursor } from "./sequence";
+import { clampPct } from "./tune";
 import type { Commentary, FontSize, GenevaBook, GenevaMeta, HenryBook, Prefs, ScrollMode, Speed, Theme } from "./types";
 
 import * as wakelock from "./wakelock";
@@ -29,6 +30,8 @@ const notice = $<HTMLElement>("notice");
 const errorBox = $<HTMLElement>("error");
 const speedBtns = [...document.querySelectorAll<HTMLButtonElement>(".speed button")];
 const themeBtns = [...document.querySelectorAll<HTMLButtonElement>(".theme button")];
+const speedPctIn = $<HTMLInputElement>("speed-pct");
+const sizePctIn = $<HTMLInputElement>("size-pct");
 const modeBtns = [...document.querySelectorAll<HTMLButtonElement>(".mode button")];
 
 const loader = createLoader();
@@ -181,7 +184,20 @@ function setSize(z: FontSize) {
   document.body.classList.remove("size-s", "size-m", "size-l", "size-xl");
   document.body.classList.add(`size-${z}`);
   if (prefs) { prefs.fontSize = z; persist(); }
-  if (prefs) scroller?.setSpeed(prefs.speed);
+  refreshSpeed();
+}
+/** Percent on top of the size preset: sets --font-scale (text sizes in style.css multiply by it). */
+function setFontPct(v: unknown, writeField = true) {
+  const pct = clampPct(v);
+  if (prefs) prefs.fontPct = pct;
+  document.body.style.setProperty("--font-scale", String(pct / 100));
+  if (writeField) sizePctIn.value = String(pct);
+  if (prefs) persist();
+  refreshSpeed(); // line height / glyph width changed, so the px/s for the same pace changed too
+}
+/** Re-measure px/s for the current speed, percent and font (call after anything that changes type metrics). */
+function refreshSpeed() {
+  if (prefs) scroller?.setSpeed(prefs.speed, prefs.speedPct / 100);
 }
 const startKey = (r: Prefs["range"], edition = prefs?.edition ?? DEFAULT_EDITION_ID) =>
   `${edition}:${r.book_id}:${r.start.chapter}:${r.start.verse}`;
@@ -195,8 +211,29 @@ function persist() { savePrefs(storage, prefs); }
 function setSpeed(s: Speed) {
   prefs.speed = s;
   for (const b of speedBtns) b.setAttribute("aria-checked", String(b.dataset.speed === s));
-  scroller?.setSpeed(s);
+  refreshSpeed();
   persist();
+}
+/** Percent on top of the speed preset (50–300, saved). */
+function setSpeedPct(v: unknown, writeField = true) {
+  const pct = clampPct(v);
+  prefs.speedPct = pct;
+  if (writeField) speedPctIn.value = String(pct);
+  refreshSpeed();
+  persist();
+}
+/**
+ * Typed percent field: apply live while the number is valid, but leave the field alone mid-typing;
+ * on change/blur/Enter clamp to 50–300 (empty or junk reverts to the saved value) and rewrite it.
+ */
+function wirePct(input: HTMLInputElement, apply: (v: unknown, writeField?: boolean) => void, saved: () => number) {
+  input.addEventListener("input", () => {
+    const n = Number(input.value);
+    if (input.value.trim() !== "" && Number.isFinite(n) && n >= 50 && n <= 300) apply(n, false);
+  });
+  const commit = () => apply(input.value.trim() === "" ? saved() : input.value);
+  input.addEventListener("change", commit);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); commit(); input.blur(); } });
 }
 function applyTheme(t: Theme) {
   document.documentElement.dataset.theme = t;
@@ -286,7 +323,7 @@ async function applyStart(force = false): Promise<boolean> {
     henryNoticeShown = false;
     await ensureCommentary();
     const src = makeSource();
-    if (!scroller) scroller = new Scroller(stage, track, src, prefs.speed, prefs.mode);
+    if (!scroller) scroller = new Scroller(stage, track, src, prefs.speed, prefs.mode, prefs.speedPct / 100);
     else {
       scroller.pause();
       scroller.setSource(src);
@@ -393,6 +430,8 @@ function wire() {
   for (const b of speedBtns) b.addEventListener("click", () => setSpeed(b.dataset.speed as Speed));
   for (const b of themeBtns) b.addEventListener("click", () => setTheme(b.dataset.themeChoice as Theme));
   for (const b of modeBtns) b.addEventListener("click", () => setMode(b.dataset.mode as ScrollMode));
+  wirePct(speedPctIn, setSpeedPct, () => prefs.speedPct);
+  wirePct(sizePctIn, setFontPct, () => prefs.fontPct);
   playBtn.addEventListener("click", () => { void onPlay(); });
   restartBtn.addEventListener("click", () => { void onRestart(); });
   stage.addEventListener("pointerup", (ev) => {
@@ -419,7 +458,7 @@ function wire() {
     if ((e.key === " " || e.code === "Space") && !inField) { e.preventDefault(); void onPlay(); }
   });
   document.addEventListener("visibilitychange", () => { if (document.hidden && running) stop(); });
-  window.addEventListener("resize", () => { scroller?.setSpeed(prefs.speed); scroller?.onResize(); });
+  window.addEventListener("resize", () => { refreshSpeed(); scroller?.onResize(); });
 }
 
 async function boot() {
@@ -471,7 +510,9 @@ async function boot() {
   syncPassageLabel();
   setCommentary(prefs.commentary);
   setSize(prefs.fontSize);
+  setFontPct(prefs.fontPct);
   setSpeed(prefs.speed);
+  setSpeedPct(prefs.speedPct);
   applyTheme(prefs.theme);
   applyModeUi(prefs.mode);
   updatePlayLabel();

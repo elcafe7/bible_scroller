@@ -1,5 +1,6 @@
 import { canonBooks, groupBooks as groupCanonBooks } from "./canon";
 import { DEFAULT_EDITION_ID, EDITIONS } from "./editions";
+import { clampPct, PCT_DEFAULT } from "./tune";
 import type { Commentary, FontSize, GenevaMeta, GenevaMetaBook, Prefs, VersePoint, ScrollMode, Speed, Theme } from "./types";
 
 export const PREFS_KEY = "bible_scroller.v1";
@@ -51,7 +52,7 @@ export function defaultPrefs(meta: GenevaMeta): Prefs {
   const start = mb.book_id === "john" && (mb.chapters >= 3) && (mb.verse_counts[2] ?? 0) >= 16
     ? { chapter: 3, verse: 16 }
     : { chapter: 1, verse: 1 };
-  return { range: { book_id: mb.book_id, start }, edition: DEFAULT_EDITION_ID, commentary: "none", fontSize: "m", speed: "medium", theme: "light", mode: "vertical" };
+  return { range: { book_id: mb.book_id, start }, edition: DEFAULT_EDITION_ID, commentary: "none", fontSize: "m", fontPct: PCT_DEFAULT, speed: "medium", speedPct: PCT_DEFAULT, theme: "light", mode: "vertical" };
 }
 
 function migrateRange(meta: GenevaMeta, r: unknown): Prefs["range"] | null {
@@ -79,7 +80,9 @@ export function loadPrefs(storage: KV, meta: GenevaMeta): Prefs {
     commentary: COMMENTARIES.includes(p.commentary as Commentary) ? (p.commentary as Commentary)
       : typeof p.henry === "boolean" ? (p.henry ? "henry" : "none") : d.commentary,
     fontSize: FONT_SIZES.includes(p.fontSize as FontSize) ? (p.fontSize as FontSize) : d.fontSize,
+    fontPct: clampPct(p.fontPct),
     speed: SPEEDS.includes(p.speed as Speed) ? (p.speed as Speed) : d.speed,
+    speedPct: clampPct(p.speedPct),
     theme: THEMES.includes(p.theme as Theme) ? (p.theme as Theme) : d.theme,
     mode: MODES.includes(p.mode as ScrollMode) ? (p.mode as ScrollMode) : d.mode,
   };
@@ -89,7 +92,8 @@ export function savePrefs(storage: KV, prefs: Prefs) {
   const out: Prefs = {
     range: { book_id: prefs.range.book_id, start: prefs.range.start },
     edition: prefs.edition,
-    commentary: prefs.commentary, fontSize: prefs.fontSize, speed: prefs.speed, theme: prefs.theme, mode: prefs.mode,
+    commentary: prefs.commentary, fontSize: prefs.fontSize, fontPct: clampPct(prefs.fontPct),
+    speed: prefs.speed, speedPct: clampPct(prefs.speedPct), theme: prefs.theme, mode: prefs.mode,
   };
   try { storage.setItem(PREFS_KEY, JSON.stringify(out)); } catch { /* */ }
 }

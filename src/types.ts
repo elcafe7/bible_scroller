@@ -85,7 +85,11 @@ export interface Prefs {
   edition: string;
   commentary: Commentary;
   fontSize: FontSize;
+  /** Percent on top of the size preset (50–300, default 100). */
+  fontPct: number;
   speed: Speed;
+  /** Percent on top of the speed preset (50–300, default 100). */
+  speedPct: number;
   theme: Theme;
   mode: ScrollMode;
 }

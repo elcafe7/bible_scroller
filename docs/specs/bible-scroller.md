@@ -389,3 +389,4 @@ None locked as blockers. Defer to Nate only if needed later:
 - Commentary: No commentary / Matthew Henry / Calvin (`data/calvin/**`, built by `scripts/build-calvin.mjs` from Lex `john_calvin.db`). Legacy `henry: boolean` migrates. A note shows when the chosen commentary has no data for the selected book (e.g. Henry: Psalms; Calvin: Judges–Song, 2–3 John, Revelation; any Apocrypha).
 - Leading Scripture requote (superscript-numbered verse lines) is stripped from commentary text at load.
 - Text size S / M / L / XL (`fontSize` pref) scales the stage `--verse-size`.
+- Fine tuning: Size % and Speed % number inputs (`fontPct`, `speedPct`; 50–300, default 100, whole numbers, clamped; junk reverts to the saved value) multiply on top of the chosen preset. Ticker pace is average characters per minute (`SPEED_CPM` = vertical `SPEED_LPM` × 5.4); ticker type is a share of viewport height (XL = 12vh, capped at 24vh after the percent).

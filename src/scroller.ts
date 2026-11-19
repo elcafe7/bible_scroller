@@ -7,11 +7,24 @@ export function setCommentaryName(n: string) { commentaryName = n; }
 export const SPEED_LPM: Record<Speed, number> = { "very-slow": 30, slow: 48, medium: 80, fast: 130 };
 
 /**
- * Horizontal ticker CPM — separate curve from vertical. Marquee tracking feels faster
- * than vertical LPM at the same "Slow", so Slow/Medium sit lower; Fast stays ~reading-brisk.
- * Slow/Medium/Fast kept at 480/900/1620; Very Slow is a ~0.625× step below Slow (same ratio as vertical).
+ * Horizontal ticker pace in AVERAGE characters per minute (real text, not the widest glyph).
+ * Derived from the vertical curve so Very Slow/Slow/Medium/Fast keep the same ratios in both
+ * modes: CPM = LPM × TICKER_CPM_PER_LPM. At 5.4 the ticker moves ~1.4× vertical's em/s, which a
+ * moving marquee needs to read as the same level (Slow ≈ 2 em/s ≈ 90 px/s on a 1080p screen).
+ *
+ * History: 480/900/1620 were multiplied by the width of "M" (the widest glyph, ~1.9× the
+ * average letter), so Slow ran ~7.6 em/s (~350 px/s at 1080p, ~8× vertical Slow).
  */
-export const SPEED_CPM: Record<Speed, number> = { "very-slow": 300, slow: 480, medium: 900, fast: 1620 };
+export const TICKER_CPM_PER_LPM = 5.4;
+export const SPEED_CPM: Record<Speed, number> = {
+  "very-slow": Math.round(SPEED_LPM["very-slow"] * TICKER_CPM_PER_LPM),
+  slow: Math.round(SPEED_LPM.slow * TICKER_CPM_PER_LPM),
+  medium: Math.round(SPEED_LPM.medium * TICKER_CPM_PER_LPM),
+  fast: Math.round(SPEED_LPM.fast * TICKER_CPM_PER_LPM),
+};
+
+/** Representative running text; its width ÷ length is the average character width in the ticker font. */
+export const CHAR_PROBE = "And the LORD said unto him, Go thy way, and in the beginning was the word of God.";
 
 /**
  * Vertical lead-in: where the first block's top sits on a fresh Start/Restart, measured
@@ -127,6 +140,7 @@ export class Scroller {
   private pxPerSec = 0;
   private mode: ScrollMode = "vertical";
   private lastSpeed: Speed = "medium";
+  private lastScale = 1;
   private lineH = 40;
   /** Fresh start queued: place the lead-in once the stage is laid out (it is display:none until Start). */
   private leadInPending = false;
@@ -141,10 +155,11 @@ export class Scroller {
     private source: ScrollerSource,
     speed: Speed,
     mode: ScrollMode = "vertical",
+    speedScale = 1,
   ) {
     this.mode = mode;
     this.applyModeClass();
-    this.setSpeed(speed);
+    this.setSpeed(speed, speedScale);
   }
 
   get scrollMode() { return this.mode; }
@@ -162,19 +177,21 @@ export class Scroller {
     this.apply();
     this.mode = mode;
     this.applyModeClass();
-    this.setSpeed(this.lastSpeed);
+    this.setSpeed(this.lastSpeed, this.lastScale);
   }
 
-  setSpeed(speed: Speed) {
+  /** `scale` is the user's speed percent / 100, applied on top of the preset. */
+  setSpeed(speed: Speed, scale = this.lastScale) {
     this.lastSpeed = speed;
+    this.lastScale = scale;
     if (this.mode === "horizontal") {
       const probe = el("span", "item verse");
       probe.style.whiteSpace = "nowrap";
-      probe.textContent = "MMMMMMMMMM"; // 10 ch probe
+      probe.textContent = CHAR_PROBE;
       const host = measure(probe, this.track);
-      const cw = (probe.offsetWidth || 120) / 10;
+      const cw = (probe.offsetWidth || CHAR_PROBE.length * 12) / CHAR_PROBE.length; // average char width
       host.remove();
-      this.pxPerSec = (SPEED_CPM[speed] * cw) / 60;
+      this.pxPerSec = (SPEED_CPM[speed] * cw * scale) / 60;
       return;
     }
     const probe = el("div", "item verse");
@@ -184,7 +201,7 @@ export class Scroller {
     const lh = parseFloat(getComputedStyle(probe).lineHeight) || 40;
     host.remove();
     this.lineH = lh;
-    this.pxPerSec = (SPEED_LPM[speed] * lh) / 60;
+    this.pxPerSec = (SPEED_LPM[speed] * lh * scale) / 60;
   }
 
   /**
@@ -249,7 +266,7 @@ export class Scroller {
     const myGen = this.gen;
     const tick = (t: number) => {
       if (!this.playing || myGen !== this.gen) return;
-      const dt = Math.min(0.05, (t - this.last) / 1000); // tighter clamp = less jump after tab-focus
+      const dt = Math.max(0, Math.min(0.05, (t - this.last) / 1000)); // tighter clamp = less jump after tab-focus
       this.last = t;
       this.pos -= this.pxPerSec * dt;
       if (this.leadInActive && this.pos <= 0) this.leadInActive = false;
