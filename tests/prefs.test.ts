@@ -25,7 +25,9 @@ describe("preferences", async () => {
       edition: "geneva1599",
       commentary: "none",
       fontSize: "m",
+      fontPct: 100,
       speed: "medium",
+      speedPct: 100,
       theme: "light",
       mode: "vertical",
     });

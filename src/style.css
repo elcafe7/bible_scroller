@@ -80,7 +80,7 @@ body.state-running.idle #stage { cursor: none; }
 }
 .item {
   max-width: var(--measure); margin: 0 auto var(--gap);
-  font-family: var(--serif); font-size: var(--verse-size); line-height: var(--leading);
+  font-family: var(--serif); font-size: calc(var(--verse-size) * var(--font-scale, 1)); line-height: var(--leading);
   font-variant-numeric: oldstyle-nums; hanging-punctuation: first;
   text-wrap: pretty; hyphens: manual; overflow-wrap: break-word;
 }
@@ -92,7 +92,7 @@ body.state-running.idle #stage { cursor: none; }
   font-variant-numeric: lining-nums tabular-nums;
 }
 .henry {
-  font-size: calc(var(--verse-size) * 0.74); line-height: 1.6;
+  font-size: calc(var(--verse-size) * var(--font-scale, 1) * 0.74); line-height: 1.6;
   color: var(--ink-soft);
   padding-left: 1.1em; border-left: 1px solid var(--rule);
   margin-top: calc(var(--gap) * -0.35);
@@ -129,7 +129,7 @@ body.mode-horizontal .item {
   align-items: baseline;
   gap: 0.85em;
   /* Ticker type is a share of viewport height (see size-* overrides below). */
-  font-size: var(--ticker-verse);
+  font-size: var(--ticker-verse-px);
 }
 body.mode-horizontal .item .ref {
   display: inline;
@@ -144,7 +144,7 @@ body.mode-horizontal .henry {
   padding-left: 0;
   border-left: 0;
   margin-top: 0;
-  font-size: var(--ticker-henry);
+  font-size: var(--ticker-henry-px);
   opacity: 0.92;
 }
 body.mode-horizontal .henry .ref { font-size: 0.55em; }
@@ -160,7 +160,7 @@ body.mode-horizontal .item.ticker-stack {
   justify-content: center;
   gap: 0.35em;
   white-space: normal;
-  font-size: var(--ticker-verse); /* orient ref scales with verse line */
+  font-size: var(--ticker-verse-px); /* orient ref scales with verse line */
 }
 body.mode-horizontal .item.verse .ticker-row.verse-row {
   font-size: 1em;
@@ -177,7 +177,7 @@ body.mode-horizontal .ticker-orient .ref {
   opacity: 0.7;
 }
 body.mode-horizontal .henry-row {
-  font-size: var(--ticker-henry);
+  font-size: var(--ticker-henry-px);
   opacity: 0.92;
   border-left: 2px solid var(--rule);
   padding-left: 0.65em;
@@ -246,6 +246,18 @@ legend { width: 100%; padding: 0; margin-bottom: 0.45rem; text-align: center; fo
   border: 1px solid var(--rule); background: var(--field-bg); cursor: pointer;
 }
 .actions .primary { flex: 1; background: var(--ink); color: var(--bg); border-color: var(--ink); font-weight: 600; }
+.pcts { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 0.8rem; }
+.pct {
+  display: inline-flex; align-items: center; gap: 0.6rem;
+  border: 1px solid var(--rule); border-radius: 4px; padding: 3px 3px 3px 0.85rem;
+  color: var(--ink-soft); white-space: nowrap;
+}
+.pct input {
+  width: 4.5rem; min-height: 44px; padding: 0 0.4rem; text-align: center;
+  background: var(--field-bg); border: 1px solid var(--field-border); border-radius: 3px; color: var(--ink);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.pct input:hover { border-color: var(--border-strong); background: var(--field-bg-hover); }
 button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 2px; }
 
 /* Verse/Word footer: muted JPSF & AP credit */
@@ -351,14 +363,18 @@ body.size-xl { --verse-size: clamp(2rem, 1.4rem + 2.6vw, 3.4rem); }
  * Ticker font size = proportion of viewport height (vertical --verse-size rem clamps unchanged).
  * S–XL map to shares of the screen so fullscreen ticker scales with the display.
  * Floors keep phone-landscape readable. Commentary ~85% of the verse line.
- *   S  = 3vh   / 2.55vh
+ *   S  = 3vh    / 2.55vh
  *   M  = 4.25vh / 3.6vh   (default)
- *   L  = 5.75vh / 4.9vh
- *   XL = 7.5vh / 6.4vh
+ *   L  = 6.5vh  / 5.5vh
+ *   XL = 12vh   / 10.2vh  (≈130px on a 1080p screen, ≈100px on a 390×844 phone)
+ * The user's percent (--font-scale, 50–300%) multiplies on top; the ticker line is capped at
+ * 24vh (commentary 20vh) so a two-line commentary item always fits the screen.
  */
 body.mode-horizontal {
   --ticker-verse: max(1.05rem, 4.25vh);
   --ticker-henry: max(0.9rem, 3.6vh);
+  --ticker-verse-px: min(calc(var(--ticker-verse) * var(--font-scale, 1)), 24vh);
+  --ticker-henry-px: min(calc(var(--ticker-henry) * var(--font-scale, 1)), 20vh);
 }
 body.mode-horizontal.size-s {
   --ticker-verse: max(0.95rem, 3vh);
@@ -369,12 +385,12 @@ body.mode-horizontal.size-m {
   --ticker-henry: max(0.9rem, 3.6vh);
 }
 body.mode-horizontal.size-l {
-  --ticker-verse: max(1.2rem, 5.75vh);
-  --ticker-henry: max(1.02rem, 4.9vh);
+  --ticker-verse: max(1.3rem, 6.5vh);
+  --ticker-henry: max(1.1rem, 5.5vh);
 }
 body.mode-horizontal.size-xl {
-  --ticker-verse: max(1.35rem, 7.5vh);
-  --ticker-henry: max(1.15rem, 6.4vh);
+  --ticker-verse: max(1.6rem, 12vh);
+  --ticker-henry: max(1.35rem, 10.2vh);
 }
 
 /* ---------- Word-style passage button + picker ---------- */

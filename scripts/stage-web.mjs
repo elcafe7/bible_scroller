@@ -16,7 +16,7 @@ if (!existsSync(join(DIST, "index.html")) || !existsSync(join(DIST, "data/geneva
 }
 const html = readFileSync(join(DIST, "index.html"), "utf8");
 if (/\?v=/.test(html)) { console.error("stage-web: dist/index.html has a ?v= cache-buster; rebuild"); process.exit(1); }
-const inline = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(
+const inline = [...html.matchAll(/<script>([\s\S]*?)<\/script>/gi)].map(
   (m) => `'sha256-${createHash("sha256").update(m[1]).digest("base64")}'`,
 );
 
