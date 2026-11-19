@@ -28,9 +28,9 @@ cpSync(join(DIST, "data"), join(out, "data"), { recursive: true });
 if (!existsSync(join(DIST, "LICENSE"))) { console.error("stage-web: dist/LICENSE missing; rebuild"); process.exit(1); }
 cpSync(join(DIST, "LICENSE"), join(out, "LICENSE"));
 
-// Offline link from the welcome card + footer: the public GitHub release page (zip is an asset there; not hosted here).
+// Offline link from the welcome card + footer: the public GitHub repo page (README links the zip; not hosted here).
 const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
-const zipUrl = `https://github.com/elcafe7/bible_scroller/releases/tag/v${version}`;
+const zipUrl = "https://github.com/elcafe7/bible_scroller";
 if (html.split(`href="${zipUrl}"`).length - 1 !== 2) {
   console.error(`stage-web: index.html must link ${zipUrl} from the card and the footer`); process.exit(1);
 }

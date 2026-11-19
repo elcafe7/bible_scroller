@@ -419,7 +419,7 @@ function wire() {
     if ((e.key === " " || e.code === "Space") && !inField) { e.preventDefault(); void onPlay(); }
   });
   document.addEventListener("visibilitychange", () => { if (document.hidden && running) stop(); });
-  window.addEventListener("resize", () => scroller?.setSpeed(prefs.speed));
+  window.addEventListener("resize", () => { scroller?.setSpeed(prefs.speed); scroller?.onResize(); });
 }
 
 async function boot() {

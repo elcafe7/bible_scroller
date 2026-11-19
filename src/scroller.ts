@@ -13,6 +13,17 @@ export const SPEED_LPM: Record<Speed, number> = { "very-slow": 30, slow: 48, med
  */
 export const SPEED_CPM: Record<Speed, number> = { "very-slow": 300, slow: 480, medium: 900, fast: 1620 };
 
+/**
+ * Vertical lead-in: where the first block's top sits on a fresh Start/Restart, measured
+ * from the stage top. Just above the bottom safe area (two lines of clearance) and never
+ * deeper than 86% of the stage, so the first verse is visible through the bottom fade
+ * and rises into view instead of starting at the top.
+ */
+export function leadInOffset(stageH: number, safeBottom = 0, lineH = 40): number {
+  if (!(stageH > 0)) return 0;
+  return Math.max(0, Math.round(Math.min(stageH * 0.86, stageH - safeBottom - lineH * 2)));
+}
+
 export interface ScrollerSource {
   next(): LoopItem | null;
 }
@@ -116,6 +127,12 @@ export class Scroller {
   private pxPerSec = 0;
   private mode: ScrollMode = "vertical";
   private lastSpeed: Speed = "medium";
+  private lineH = 40;
+  /** Fresh start queued: place the lead-in once the stage is laid out (it is display:none until Start). */
+  private leadInPending = false;
+  /** First block still rising from the lead-in; keep it bottom-anchored across resizes (fullscreen settling). */
+  private leadInActive = false;
+  private lastStageH = 0;
   playing = false;
 
   constructor(
@@ -131,6 +148,9 @@ export class Scroller {
   }
 
   get scrollMode() { return this.mode; }
+
+  /** Current track offset (px; y in vertical, x in horizontal). */
+  get offset() { return this.pos; }
 
   setSource(source: ScrollerSource) { this.source = source; }
 
@@ -163,26 +183,67 @@ export class Scroller {
     // Inherit stage typography roughly via copying computed font from track if present.
     const lh = parseFloat(getComputedStyle(probe).lineHeight) || 40;
     host.remove();
+    this.lineH = lh;
     this.pxPerSec = (SPEED_LPM[speed] * lh) / 60;
   }
 
-  /** Clear and begin again at the start of the sequence (caller resets the source). */
+  /**
+   * Clear and begin again at the start of the sequence (caller resets the source).
+   * The stage is usually still hidden here (settings view), so its size reads 0; the
+   * lead-in is placed now if the stage is laid out, otherwise on the next play().
+   */
   reset() {
     this.pause(); // never reset mid-tick — avoids double-RAF / torn frames
     this.track.replaceChildren();
+    this.pos = 0;
+    this.leadInActive = false;
+    this.leadInPending = true;
+    this.apply();
+    const visible = this.mode === "horizontal" ? this.stage.clientWidth > 0 : this.stage.clientHeight > 0;
+    if (visible) this.placeLeadIn();
+  }
+
+  /** Fresh-start position: vertical rises from near the bottom; horizontal enters from the right edge. */
+  private placeLeadIn() {
+    this.leadInPending = false;
     if (this.mode === "horizontal") {
-      this.pos = this.stage.clientWidth;
+      this.pos = this.stage.clientWidth || window.innerWidth;
       this.apply();
       this.spawnHorizontal();
-    } else {
-      this.pos = this.stage.clientHeight * 0.42;
-      this.apply();
-      this.fillVertical();
+      return;
     }
+    const h = this.stage.clientHeight || window.innerHeight;
+    this.lastStageH = h;
+    this.pos = leadInOffset(h, this.safeBottom(), this.lineH);
+    this.leadInActive = this.pos > 0;
+    this.apply();
+    this.fillVertical();
+  }
+
+  private safeBottom(): number {
+    const probe = el("div");
+    probe.style.cssText = "position:absolute;left:0;bottom:0;width:1px;height:env(safe-area-inset-bottom, 0px);visibility:hidden;pointer-events:none;";
+    this.stage.append(probe);
+    const v = probe.offsetHeight || 0;
+    probe.remove();
+    return v;
+  }
+
+  /** Stage resized (fullscreen settling, rotation): keep a still-rising lead-in anchored to the bottom. */
+  onResize() {
+    if (this.mode !== "vertical") return;
+    const h = this.stage.clientHeight;
+    if (!h) return;
+    if (this.leadInActive && this.pos > 0 && this.lastStageH > 0 && h !== this.lastStageH) {
+      this.pos = Math.max(0, this.pos + (h - this.lastStageH));
+      this.apply();
+    }
+    this.lastStageH = h;
   }
 
   play() {
     if (this.playing) return;
+    if (this.leadInPending) this.placeLeadIn(); // fresh start only; Resume keeps pos
     this.playing = true;
     this.last = performance.now();
     const myGen = this.gen;
@@ -191,6 +252,7 @@ export class Scroller {
       const dt = Math.min(0.05, (t - this.last) / 1000); // tighter clamp = less jump after tab-focus
       this.last = t;
       this.pos -= this.pxPerSec * dt;
+      if (this.leadInActive && this.pos <= 0) this.leadInActive = false;
       if (this.mode === "horizontal") this.tickHorizontal();
       else {
         this.recycleVertical();
@@ -225,7 +287,7 @@ export class Scroller {
   }
 
   private fillVertical() {
-    const want = this.stage.clientHeight * 2;
+    const want = (this.stage.clientHeight || window.innerHeight) * 2;
     let guard = 0;
     while (this.pos + this.track.offsetHeight < want && guard++ < 50) {
       const item = this.source.next();
