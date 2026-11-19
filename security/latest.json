@@ -1,9 +1,8 @@
 {
-  "tag": null,
-  "timestamp": null,
-  "date_utc": null,
-  "result": "none",
-  "folder": null,
-  "summary": null,
-  "note": "No release has been verified by the workflow yet."
+  "tag": "v0.2.0",
+  "timestamp": "20261119T204201Z",
+  "date_utc": "2026-11-19T20:42:01Z",
+  "result": "pass",
+  "folder": "reports/v0.2.0_20261119T204201Z",
+  "summary": "reports/v0.2.0_20261119T204201Z/summary.md"
 }
