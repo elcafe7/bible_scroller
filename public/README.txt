@@ -1,4 +1,4 @@
-Scroll (bible_scroller) 0.1.0 — offline copy
+Scroll (bible_scroller) 0.2.0 — offline copy
 
 Editions: Geneva 1599, KJV 1611 (both with Apocrypha), KJV Oxford 1769 (66 books).
 Commentary: none, Matthew Henry, or Calvin.

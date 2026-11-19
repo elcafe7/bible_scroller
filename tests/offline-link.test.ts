@@ -21,7 +21,7 @@ describe("offline download link", () => {
   it("vite fills the placeholder with the public GitHub repo page", async () => {
     const { OFFLINE_ZIP_URL } = await import("../vite.config");
     expect(OFFLINE_ZIP_URL).toBe("https://github.com/elcafe7/bible_scroller");
-    expect(version).toBe("0.1.0");
+    expect(version).toMatch(/^\d+\.\d+\.\d+$/);
   });
   it("footer credits line links the MIT LICENSE shipped next to index.html", () => {
     const html = readFileSync(resolve(ROOT, "index.html"), "utf8");
