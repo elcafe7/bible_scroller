@@ -1,4 +1,4 @@
-import { cpSync, existsSync, rmSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 
@@ -16,6 +16,19 @@ function classicScript(): Plugin {
   };
 }
 
+const { version } = JSON.parse(readFileSync(resolve(import.meta.dirname, "package.json"), "utf8")) as { version: string };
+
+/** Public GitHub repo page (README is the landing: download + how-to). Name kept for the %OFFLINE_ZIP_URL% placeholder. */
+export const OFFLINE_ZIP_URL = "https://github.com/elcafe7/bible_scroller";
+
+/** %OFFLINE_ZIP_URL% in index.html -> GitHub repo page (welcome card + footer offline link). */
+function offlineZipName(): Plugin {
+  return {
+    name: "offline-zip-name",
+    transformIndexHtml: (html) => html.replaceAll("%OFFLINE_ZIP_URL%", OFFLINE_ZIP_URL),
+  };
+}
+
 /** Copy generated data/ (or the John 1 fixture when data/ is absent) into dist/data. Never copies .db files. */
 function copyData(): Plugin {
   return {
@@ -29,13 +42,14 @@ function copyData(): Plugin {
       rmSync(dest, { recursive: true, force: true });
       cpSync(src, dest, { recursive: true, filter: (p) => !/\.(db|env|md)$/i.test(p) && !/\/\.env/.test(p) });
       console.log(`copy-data: ${src === full ? "data/" : "fixtures/john1/"} -> dist/data`);
+      cpSync(resolve(root, "LICENSE"), resolve(root, "dist/LICENSE")); // footer links ./LICENSE (MIT)
     },
   };
 }
 
 export default defineConfig({
   base: "./",
-  plugins: [classicScript(), copyData()],
+  plugins: [offlineZipName(), classicScript(), copyData()],
   build: {
     outDir: "dist",
     emptyOutDir: true,

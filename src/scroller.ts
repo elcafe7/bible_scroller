@@ -1,9 +1,45 @@
-import type { LoopItem, Speed } from "./types";
+import type { LoopItem, ScrollMode, Speed } from "./types";
 
-/** Reading pace in lines per minute (≈150 / 200 / 270 wpm at ~10 words a line). Far slower than a ticker. */
-export const SPEED_LPM: Record<Speed, number> = { slow: 15, medium: 20, fast: 27 };
+let commentaryName = "Matthew Henry";
+export function setCommentaryName(n: string) { commentaryName = n; }
 
-export interface ScrollerSource { next(): LoopItem | null }
+/** Vertical reading pace in CSS lines per minute. Tuned so Fast feels brisk continuous reading (not a crawl); still far slower than a stock ticker. */
+export const SPEED_LPM: Record<Speed, number> = { "very-slow": 30, slow: 48, medium: 80, fast: 130 };
+
+/**
+ * Horizontal ticker pace in AVERAGE characters per minute (real text, not the widest glyph).
+ * Derived from the vertical curve so Very Slow/Slow/Medium/Fast keep the same ratios in both
+ * modes: CPM = LPM × TICKER_CPM_PER_LPM. At 5.4 the ticker moves ~1.4× vertical's em/s, which a
+ * moving marquee needs to read as the same level (Slow ≈ 2 em/s ≈ 90 px/s on a 1080p screen).
+ *
+ * History: 480/900/1620 were multiplied by the width of "M" (the widest glyph, ~1.9× the
+ * average letter), so Slow ran ~7.6 em/s (~350 px/s at 1080p, ~8× vertical Slow).
+ */
+export const TICKER_CPM_PER_LPM = 5.4;
+export const SPEED_CPM: Record<Speed, number> = {
+  "very-slow": Math.round(SPEED_LPM["very-slow"] * TICKER_CPM_PER_LPM),
+  slow: Math.round(SPEED_LPM.slow * TICKER_CPM_PER_LPM),
+  medium: Math.round(SPEED_LPM.medium * TICKER_CPM_PER_LPM),
+  fast: Math.round(SPEED_LPM.fast * TICKER_CPM_PER_LPM),
+};
+
+/** Representative running text; its width ÷ length is the average character width in the ticker font. */
+export const CHAR_PROBE = "And the LORD said unto him, Go thy way, and in the beginning was the word of God.";
+
+/**
+ * Vertical lead-in: where the first block's top sits on a fresh Start/Restart, measured
+ * from the stage top. Just above the bottom safe area (two lines of clearance) and never
+ * deeper than 86% of the stage, so the first verse is visible through the bottom fade
+ * and rises into view instead of starting at the top.
+ */
+export function leadInOffset(stageH: number, safeBottom = 0, lineH = 40): number {
+  if (!(stageH > 0)) return 0;
+  return Math.max(0, Math.round(Math.min(stageH * 0.86, stageH - safeBottom - lineH * 2)));
+}
+
+export interface ScrollerSource {
+  next(): LoopItem | null;
+}
 
 function el(tag: string, cls?: string, text?: string) {
   const n = document.createElement(tag);
@@ -12,72 +48,233 @@ function el(tag: string, cls?: string, text?: string) {
   return n;
 }
 
-export function renderItem(item: LoopItem): HTMLElement {
+/** Collapse wrapping whitespace but keep NBSP runs (commentary double-gap after periods). */
+function flattenText(text: string): string {
+  return text
+    .replace(/\u00A0+/g, (m) => "\u0001".repeat(m.length))
+    .replace(/\s+/g, " ")
+    .replace(/\u0001/g, "\u00A0")
+    .trim();
+}
+
+/** Measure in a detached tree so probes never mutate the live track (avoids layout jumps). */
+function measure(node: HTMLElement, track: HTMLElement): HTMLElement {
+  const host = el("div");
+  host.style.cssText = "position:absolute;left:-99999px;top:0;visibility:hidden;pointer-events:none;";
+  // Match track formatting context for font metrics.
+  host.className = track.className;
+  document.body.append(host);
+  host.append(node);
+  return host;
+}
+
+export function renderItem(item: LoopItem, mode: ScrollMode = "vertical"): HTMLElement {
+  if (mode === "horizontal") return renderHorizontalItem(item);
   if (item.kind === "verse") {
     const n = el("article", "item verse");
     n.append(el("span", "ref", `${item.book} ${item.chapter}:${item.verse}`), el("p", "", item.text));
     return n;
   }
   const n = el("aside", "item henry");
-  n.setAttribute("aria-label", "Matthew Henry");
+  n.setAttribute("aria-label", commentaryName);
   const span = item.verse_start === item.verse_end ? `${item.verse_start}` : `${item.verse_start}–${item.verse_end}`;
-  const ref = el("span", "ref", `Matthew Henry · ${item.book} ${item.chapter}:${span}`);
+  const ref = el("span", "ref", `${commentaryName} · ${item.book} ${item.chapter}:${span}`);
   if (item.section_title) ref.append(" ", el("span", "title", item.section_title));
   n.append(ref);
   for (const para of item.text.split(/\n\s*\n/)) {
-    const t = para.replace(/\s*\n\s*/g, " ").trim();
+    const t = flattenText(para.replace(/\n/g, " "));
     if (t) n.append(el("p", "", t));
   }
   return n;
 }
 
+/** One verse row for the horizontal ticker. */
+function renderHorizontalVerse(item: Extract<LoopItem, { kind: "verse" }>): HTMLElement {
+  const row = el("div", "ticker-row verse-row");
+  row.append(
+    el("span", "ref", `${item.book} ${item.chapter}:${item.verse}`),
+    el("span", "body", flattenText(item.text)),
+  );
+  return row;
+}
+
+/** One commentary row (ref + body) for the horizontal ticker. */
+function renderHorizontalHenry(item: Extract<LoopItem, { kind: "henry" }>): HTMLElement {
+  const row = el("div", "ticker-row henry-row");
+  const span = item.verse_start === item.verse_end ? `${item.verse_start}` : `${item.verse_start}–${item.verse_end}`;
+  let label = `${commentaryName} · ${item.book} ${item.chapter}:${span}`;
+  if (item.section_title) label += ` — ${item.section_title}`;
+  row.append(el("span", "ref", label), el("span", "body", flattenText(item.text)));
+  return row;
+}
+
 /**
- * Continuous rAF scroll of a virtual column: items are appended below the fold as needed and
- * removed once they have scrolled off the top, so the DOM stays small for any range length.
+ * Ticker item — one after another (same order as vertical LoopCursor).
+ * Verses use the verse line only; commentary uses the second line after passages finish.
+ */
+function renderHorizontalItem(item: LoopItem): HTMLElement {
+  if (item.kind === "verse") {
+    const n = el("article", "item verse");
+    n.append(renderHorizontalVerse(item));
+    return n;
+  }
+  // Commentary phase: discreet range ref on line 1, note on line 2 (not paired under a live verse).
+  const n = el("aside", "item henry ticker-stack");
+  n.setAttribute("aria-label", commentaryName);
+  const span = item.verse_start === item.verse_end ? `${item.verse_start}` : `${item.verse_start}–${item.verse_end}`;
+  const orient = el("div", "ticker-row verse-row ticker-orient");
+  orient.append(el("span", "ref", `${item.book} ${item.chapter}:${span}`));
+  n.append(orient, renderHorizontalHenry(item));
+  return n;
+}
+
+/**
+ * Continuous rAF scroll. Vertical mode: virtual column of passage blocks.
+ * Horizontal mode: one marquee item at a time (verse line, then commentary line after passages).
  */
 export class Scroller {
-  private y = 0;
+  private pos = 0; // y in vertical mode, x in horizontal
   private raf = 0;
+  private gen = 0; // bumps on every pause so a stale tick cannot reschedule
   private last = 0;
   private pxPerSec = 0;
+  private mode: ScrollMode = "vertical";
+  private lastSpeed: Speed = "medium";
+  private lastScale = 1;
+  private lineH = 40;
+  /** Fresh start queued: place the lead-in once the stage is laid out (it is display:none until Start). */
+  private leadInPending = false;
+  /** First block still rising from the lead-in; keep it bottom-anchored across resizes (fullscreen settling). */
+  private leadInActive = false;
+  private lastStageH = 0;
   playing = false;
 
-  constructor(private stage: HTMLElement, private track: HTMLElement, private source: ScrollerSource, speed: Speed) {
-    this.setSpeed(speed);
+  constructor(
+    private stage: HTMLElement,
+    private track: HTMLElement,
+    private source: ScrollerSource,
+    speed: Speed,
+    mode: ScrollMode = "vertical",
+    speedScale = 1,
+  ) {
+    this.mode = mode;
+    this.applyModeClass();
+    this.setSpeed(speed, speedScale);
   }
+
+  get scrollMode() { return this.mode; }
+
+  /** Current track offset (px; y in vertical, x in horizontal). */
+  get offset() { return this.pos; }
 
   setSource(source: ScrollerSource) { this.source = source; }
 
-  setSpeed(speed: Speed) {
-    const probe = el("div", "item verse");
-    probe.style.visibility = "hidden";
-    probe.style.position = "absolute";
-    probe.textContent = "x";
-    this.track.append(probe);
-    const lh = parseFloat(getComputedStyle(probe).lineHeight) || 40;
-    probe.remove();
-    this.pxPerSec = (SPEED_LPM[speed] * lh) / 60;
+  setMode(mode: ScrollMode) {
+    if (this.mode === mode) return;
+    this.pause();
+    this.track.replaceChildren(); // clear before CSS swap to avoid one-frame layout tear
+    this.pos = 0;
+    this.apply();
+    this.mode = mode;
+    this.applyModeClass();
+    this.setSpeed(this.lastSpeed, this.lastScale);
   }
 
-  /** Clear and begin again at the top of the sequence (caller resets the source). */
+  /** `scale` is the user's speed percent / 100, applied on top of the preset. */
+  setSpeed(speed: Speed, scale = this.lastScale) {
+    this.lastSpeed = speed;
+    this.lastScale = scale;
+    if (this.mode === "horizontal") {
+      const probe = el("span", "item verse");
+      probe.style.whiteSpace = "nowrap";
+      probe.textContent = CHAR_PROBE;
+      const host = measure(probe, this.track);
+      const cw = (probe.offsetWidth || CHAR_PROBE.length * 12) / CHAR_PROBE.length; // average char width
+      host.remove();
+      this.pxPerSec = (SPEED_CPM[speed] * cw * scale) / 60;
+      return;
+    }
+    const probe = el("div", "item verse");
+    probe.textContent = "x";
+    const host = measure(probe, this.track);
+    // Inherit stage typography roughly via copying computed font from track if present.
+    const lh = parseFloat(getComputedStyle(probe).lineHeight) || 40;
+    host.remove();
+    this.lineH = lh;
+    this.pxPerSec = (SPEED_LPM[speed] * lh * scale) / 60;
+  }
+
+  /**
+   * Clear and begin again at the start of the sequence (caller resets the source).
+   * The stage is usually still hidden here (settings view), so its size reads 0; the
+   * lead-in is placed now if the stage is laid out, otherwise on the next play().
+   */
   reset() {
+    this.pause(); // never reset mid-tick — avoids double-RAF / torn frames
     this.track.replaceChildren();
-    this.y = this.stage.clientHeight * 0.42;
+    this.pos = 0;
+    this.leadInActive = false;
+    this.leadInPending = true;
     this.apply();
-    this.fill();
+    const visible = this.mode === "horizontal" ? this.stage.clientWidth > 0 : this.stage.clientHeight > 0;
+    if (visible) this.placeLeadIn();
+  }
+
+  /** Fresh-start position: vertical rises from near the bottom; horizontal enters from the right edge. */
+  private placeLeadIn() {
+    this.leadInPending = false;
+    if (this.mode === "horizontal") {
+      this.pos = this.stage.clientWidth || window.innerWidth;
+      this.apply();
+      this.spawnHorizontal();
+      return;
+    }
+    const h = this.stage.clientHeight || window.innerHeight;
+    this.lastStageH = h;
+    this.pos = leadInOffset(h, this.safeBottom(), this.lineH);
+    this.leadInActive = this.pos > 0;
+    this.apply();
+    this.fillVertical();
+  }
+
+  private safeBottom(): number {
+    const probe = el("div");
+    probe.style.cssText = "position:absolute;left:0;bottom:0;width:1px;height:env(safe-area-inset-bottom, 0px);visibility:hidden;pointer-events:none;";
+    this.stage.append(probe);
+    const v = probe.offsetHeight || 0;
+    probe.remove();
+    return v;
+  }
+
+  /** Stage resized (fullscreen settling, rotation): keep a still-rising lead-in anchored to the bottom. */
+  onResize() {
+    if (this.mode !== "vertical") return;
+    const h = this.stage.clientHeight;
+    if (!h) return;
+    if (this.leadInActive && this.pos > 0 && this.lastStageH > 0 && h !== this.lastStageH) {
+      this.pos = Math.max(0, this.pos + (h - this.lastStageH));
+      this.apply();
+    }
+    this.lastStageH = h;
   }
 
   play() {
     if (this.playing) return;
+    if (this.leadInPending) this.placeLeadIn(); // fresh start only; Resume keeps pos
     this.playing = true;
     this.last = performance.now();
+    const myGen = this.gen;
     const tick = (t: number) => {
-      if (!this.playing) return;
-      const dt = Math.min(0.1, (t - this.last) / 1000);
+      if (!this.playing || myGen !== this.gen) return;
+      const dt = Math.max(0, Math.min(0.05, (t - this.last) / 1000)); // tighter clamp = less jump after tab-focus
       this.last = t;
-      this.y -= this.pxPerSec * dt;
-      this.recycle();
-      this.fill();
+      this.pos -= this.pxPerSec * dt;
+      if (this.leadInActive && this.pos <= 0) this.leadInActive = false;
+      if (this.mode === "horizontal") this.tickHorizontal();
+      else {
+        this.recycleVertical();
+        this.fillVertical();
+      }
       this.apply();
       this.raf = requestAnimationFrame(tick);
     };
@@ -86,31 +283,74 @@ export class Scroller {
 
   pause() {
     this.playing = false;
+    this.gen++;
     cancelAnimationFrame(this.raf);
+    this.raf = 0;
+  }
+
+  private applyModeClass() {
+    this.stage.classList.toggle("mode-horizontal", this.mode === "horizontal");
+    this.stage.classList.toggle("mode-vertical", this.mode === "vertical");
+    document.body.classList.toggle("mode-horizontal", this.mode === "horizontal");
+    document.body.classList.toggle("mode-vertical", this.mode === "vertical");
   }
 
   private apply() {
-    this.track.style.transform = `translate3d(0, ${this.y.toFixed(2)}px, 0)`;
-  }
-
-  private fill() {
-    const want = this.stage.clientHeight * 2;
-    let guard = 0;
-    while (this.y + this.track.offsetHeight < want && guard++ < 50) {
-      const item = this.source.next();
-      if (!item) break;
-      this.track.append(renderItem(item));
+    if (this.mode === "horizontal") {
+      this.track.style.transform = `translate3d(${this.pos.toFixed(2)}px, 0, 0)`;
+    } else {
+      this.track.style.transform = `translate3d(0, ${this.pos.toFixed(2)}px, 0)`;
     }
   }
 
-  private recycle() {
+  private fillVertical() {
+    const want = (this.stage.clientHeight || window.innerHeight) * 2;
+    let guard = 0;
+    while (this.pos + this.track.offsetHeight < want && guard++ < 50) {
+      const item = this.source.next();
+      if (!item) break;
+      this.track.append(renderItem(item, "vertical"));
+    }
+  }
+
+  private recycleVertical() {
     let first = this.track.firstElementChild as HTMLElement | null;
     while (first) {
       const h = first.offsetHeight + parseFloat(getComputedStyle(first).marginBottom || "0");
-      if (this.y + h >= -this.stage.clientHeight * 0.25) break;
+      if (this.pos + h >= -this.stage.clientHeight * 0.25) break;
       first.remove();
-      this.y += h;
+      this.pos += h;
       first = this.track.firstElementChild as HTMLElement | null;
+    }
+  }
+
+  /** Place the next item at the right edge (pos already = stage width on first spawn). */
+  private spawnHorizontal() {
+    if (this.track.childElementCount > 0) return;
+    const item = this.source.next();
+    if (!item) return;
+    // Same LoopCursor order as vertical: verses first, then commentary chunks one-after-another.
+    // Do not pair commentary under a verse — line 2 is unused until a henry item arrives.
+    this.track.append(renderItem(item, "horizontal"));
+  }
+
+  /**
+   * One line at a time: when the sole item has fully exited left, clear it and
+   * spawn the next at the right edge. No multi-item strip → no recycle jumps.
+   */
+  private tickHorizontal() {
+    const first = this.track.firstElementChild as HTMLElement | null;
+    if (!first) {
+      this.pos = this.stage.clientWidth;
+      this.spawnHorizontal();
+      return;
+    }
+    const w = first.offsetWidth;
+    // Fully past the left edge (with a small cushion).
+    if (this.pos + w < -24) {
+      first.remove();
+      this.pos = this.stage.clientWidth;
+      this.spawnHorizontal();
     }
   }
 }

@@ -4,6 +4,7 @@
 import { readdirSync, readFileSync, statSync, writeFileSync, existsSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { crc32, deflateRawSync } from "node:zlib";
+import { offlineHtml } from "./offline-html.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const DIST = join(ROOT, "dist");
@@ -17,6 +18,12 @@ if (!existsSync(join(DIST, "index.html")) || !existsSync(join(DIST, "data/geneva
   process.exit(1);
 }
 
+/** `(globalThis.__SCROLL_DATA__ ||= {})["geneva/meta.json"] = {...};` — key matches src/loader.ts DATA_REGISTRY. */
+function dataWrapper(key, json) {
+  const body = JSON.stringify(JSON.parse(json)); // validates + minifies; JSON is a JS expression
+  return Buffer.from(`(globalThis.__SCROLL_DATA__=globalThis.__SCROLL_DATA__||{})[${JSON.stringify(key)}]=${body};\n`, "utf8");
+}
+
 function walk(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
     const p = join(dir, d.name);
@@ -24,7 +31,8 @@ function walk(dir) {
   });
 }
 
-const files = walk(DIST).sort();
+// Offline copies never phone home: drop the GA loader (offline-html.mjs strips its <script> tag).
+const files = walk(DIST).filter((f) => relative(DIST, f) !== "ga-ap.js").sort();
 const chunks = [];
 const central = [];
 let offset = 0;
@@ -32,9 +40,15 @@ const dosTime = (d) => ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSec
 const dosDate = (d) => (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xffff;
 
 for (const f of files) {
-  const name = TOP + relative(DIST, f).split(sep).join("/");
+  const rel = relative(DIST, f).split(sep).join("/");
+  // data/**/*.json ships as a classic-script wrapper (data/x.json.js) so the unzipped copy works
+  // from file:// in Chrome/Edge too (they block fetch() of local files). Only the wrapper is packed.
+  const isData = /^data\/.+\.json$/.test(rel);
+  const name = TOP + rel + (isData ? ".js" : "");
   if (FORBIDDEN.test(name)) { console.error(`pack: forbidden file in dist: ${name}`); process.exit(1); }
-  const raw = readFileSync(f);
+  const raw = name === TOP + "index.html" ? Buffer.from(offlineHtml(readFileSync(f, "utf8"), version), "utf8")
+    : isData ? dataWrapper(rel.slice("data/".length), readFileSync(f, "utf8"))
+    : readFileSync(f);
   const def = deflateRawSync(raw, { level: 9 });
   const useDeflate = def.length < raw.length;
   const data = useDeflate ? def : raw;

@@ -50,21 +50,27 @@ export function henryForVerse(henryBook: HenryBook | null, ref: { chapter: numbe
   return null;
 }
 
-/**
- * Infinite loop cursor over a verse sequence. Henry mode is read on every step, so toggling
- * takes effect on the next item. A Henry section is shown once, right after the last verse
- * of the range that it covers (sections span several verses; repeating a long note after
- * each verse would stall the loop).
- */
+/** Henry data keyed by book_id; a single HenryBook only matches that book. */
+export type HenrySource = HenryBook | null | Map<string, HenryBook | null>;
+
+function henryBookFor(src: HenrySource, bookId: string): HenryBook | null {
+  if (!src) return null;
+  if (src instanceof Map) return src.get(bookId) ?? null;
+  return src.book_id === bookId ? src : null;
+}
+
 export class LoopCursor {
   private i = 0;
   private pendingHenry: LoopItem | null = null;
+  private henry: HenrySource;
 
-  constructor(private verses: VerseRef[], private henryBook: HenryBook | null) {}
+  constructor(private verses: VerseRef[], henry: HenrySource) {
+    this.henry = henry;
+  }
 
   get length() { return this.verses.length; }
 
-  setHenryBook(h: HenryBook | null) { this.henryBook = h; }
+  setHenryBook(h: HenrySource) { this.henry = h; }
 
   hasPending() { return this.pendingHenry !== null; }
 
@@ -82,8 +88,10 @@ export class LoopCursor {
     const isLast = this.i === this.verses.length - 1;
     this.i = (this.i + 1) % this.verses.length;
     if (henryOn) {
-      const s = henryForVerse(this.henryBook, v);
-      if (s && (isLast || henryForVerse(this.henryBook, nextV) !== s)) {
+      const hb = henryBookFor(this.henry, v.book_id);
+      const s = henryForVerse(hb, v);
+      const nextHb = henryBookFor(this.henry, nextV.book_id);
+      if (s && (isLast || henryForVerse(nextHb, nextV) !== s)) {
         this.pendingHenry = {
           kind: "henry", book: v.book, chapter: s.chapter, verse_start: s.verse_start as number,
           verse_end: s.verse_end as number, text: s.text, for_verse: v.verse, section_title: s.section_title,
@@ -95,8 +103,8 @@ export class LoopCursor {
 }
 
 /** One full pass of the loop (used by tests and for sizing). */
-export function onePass(verses: VerseRef[], henryBook: HenryBook | null, henryOn: boolean): LoopItem[] {
-  const c = new LoopCursor(verses, henryBook);
+export function onePass(verses: VerseRef[], henry: HenrySource, henryOn: boolean): LoopItem[] {
+  const c = new LoopCursor(verses, henry);
   const out: LoopItem[] = [];
   for (let n = 0; n < verses.length; n++) {
     out.push(c.next(henryOn)!);
