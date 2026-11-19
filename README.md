@@ -94,6 +94,12 @@ Commentary: **Matthew Henry**, *Commentary on the Whole Bible*, and **John Calvi
 - [Verse](https://apocalypse.press/verse/)
 - [Apocalypse Press](https://apocalypse.press) · [Jesus People SF](https://jesuspeoplesf.com)
 
+## Issues and contributing
+
+- **Questions, bugs and ideas:** open an issue in the [issue tracker](https://github.com/elcafe7/bible_scroller/issues). Add the `question` label for questions.
+- **Code and docs:** pull requests against `main` are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has the steps, the checks to run, and what's needed for a change to be accepted.
+- **Security problems:** please don't open a public issue. See [SECURITY.md](SECURITY.md) to report privately.
+
 ## License
 
 App code is under the [MIT License](LICENSE), Copyright (c) 2026 elcafe7.
