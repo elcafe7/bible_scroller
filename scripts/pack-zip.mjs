@@ -31,7 +31,8 @@ function walk(dir) {
   });
 }
 
-const files = walk(DIST).sort();
+// Offline copies never phone home: drop the GA loader (offline-html.mjs strips its <script> tag).
+const files = walk(DIST).filter((f) => relative(DIST, f) !== "ga-ap.js").sort();
 const chunks = [];
 const central = [];
 let offset = 0;

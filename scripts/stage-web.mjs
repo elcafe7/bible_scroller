@@ -27,6 +27,11 @@ cpSync(join(DIST, "assets"), join(out, "assets"), { recursive: true });
 cpSync(join(DIST, "data"), join(out, "data"), { recursive: true });
 if (!existsSync(join(DIST, "LICENSE"))) { console.error("stage-web: dist/LICENSE missing; rebuild"); process.exit(1); }
 cpSync(join(DIST, "LICENSE"), join(out, "LICENSE"));
+// GA loader (hostname-guarded to apocalypse.press). Web copy only; never in the offline zip.
+if (!existsSync(join(DIST, "ga-ap.js")) || !html.includes('<script src="./ga-ap.js" defer></script>')) {
+  console.error("stage-web: dist/ga-ap.js or its <script> tag missing; rebuild"); process.exit(1);
+}
+cpSync(join(DIST, "ga-ap.js"), join(out, "ga-ap.js"));
 
 // Offline link from the welcome card + footer: the public GitHub repo page (README links the zip; not hosted here).
 const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
@@ -37,10 +42,11 @@ if (html.split(`href="${zipUrl}"`).length - 1 !== 2) {
 
 const csp = [
   "default-src 'self'",
-  `script-src 'self' ${inline.join(" ")} https://static.cloudflareinsights.com`,
+  // GA4 page_view only (no Ads). Hosts match Verse's live CSP; loader is external ./ga-ap.js (no new hash).
+  `script-src 'self' ${inline.join(" ")} https://static.cloudflareinsights.com https://www.googletagmanager.com`,
   "style-src 'self'",
-  "img-src 'self' data:",
-  "connect-src 'self' https://cloudflareinsights.com",
+  "img-src 'self' data: https://*.google-analytics.com https://www.googletagmanager.com",
+  "connect-src 'self' https://cloudflareinsights.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com",
   "object-src 'none'", "base-uri 'self'", "frame-ancestors 'none'", "form-action 'self'",
 ].join("; ");
 
@@ -89,6 +95,10 @@ AddCharset utf-8 .json .js .css .html
   </FilesMatch>
   <Files "LICENSE">
     Header set Cache-Control "public, max-age=86400"
+  </Files>
+  # GA loader is not content-hashed: short cache so config changes reach readers quickly.
+  <Files "ga-ap.js">
+    Header set Cache-Control "public, max-age=3600"
   </Files>
   # The HTML shell revalidates so a new build's asset names are picked up.
   <FilesMatch "^index\\.html$">
