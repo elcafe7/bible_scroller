@@ -1,7 +1,7 @@
 /**
  * @vitest-environment happy-dom
  *
- * Percent tuning (text size / speed, 50–300 on top of the preset), ticker speed units and
+ * Percent tuning (text size / speed, 10–300 on top of the preset), ticker speed units and
  * frame-rate independence, and the XL ticker size.
  */
 import { readFileSync } from "node:fs";
@@ -22,7 +22,7 @@ const mem = (init: Record<string, string> = {}): KV => {
 };
 
 describe("clampPct", () => {
-  it("clamps to 50–300, rounds, and falls back to 100 for junk", () => {
+  it("clamps to 10–300, rounds, and falls back to 100 for junk", () => {
     expect([PCT_MIN, PCT_MAX, PCT_DEFAULT]).toEqual([10, 300, 100]);
     expect(clampPct(5)).toBe(10);
     expect(clampPct(0)).toBe(10);
@@ -75,7 +75,8 @@ function runAt(hz: number, ms: number, mode: "horizontal" | "vertical", scale = 
   return Math.abs(s.offset - start) / (ms / 1000);
 }
 
-describe("speed is time-based (frame-rate independent) and percent scales it", () => {
+// Synthetic 144 Hz frame loops are slow on shared CI runners (7 s observed); the default 5 s timeout flaked.
+describe("speed is time-based (frame-rate independent) and percent scales it", { timeout: 60_000 }, () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("ticker px/s is the same at 30, 60 and 144 Hz", () => {
