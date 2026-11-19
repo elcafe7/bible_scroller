@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createLoader, DataError } from "../src/loader";
+import { stripRequote, formatCommentaryText, createLoader, DataError } from "../src/loader";
 import { henryForVerse, LoopCursor, onePass, resolveRange } from "../src/sequence";
 import { fsFetch } from "./helpers";
 
@@ -101,11 +101,29 @@ describe("resolveRange / henryForVerse (fixture)", async () => {
 
 describe.skipIf(!existsSync(resolve(DATA, "geneva/meta.json")))("full data/ build", () => {
   const full = createLoader({ fetch: fsFetch(DATA) });
-  it("has 66 books and John 1:1", async () => {
+  it("has Protestant 66 + Geneva Apocrypha and John 1:1", async () => {
     const meta = await full.loadGenevaMeta();
-    expect(meta.books).toHaveLength(66);
+    expect(meta.books).toHaveLength(73); // 66 + 7 Apocrypha
+    expect(meta.books.some((b) => b.book_id === "tobit")).toBe(true);
     const john = await full.loadGenevaBook("john");
     expect(resolveRange(meta, john, { book_id: "john" }).length).toBeGreaterThan(800);
     expect((await full.loadHenryBook("john"))?.sections.some((s) => s.verse_start)).toBe(true);
+  });
+});
+
+describe("stripRequote", () => {
+  it("drops Henry's leading superscript-verse requote, keeps the comment", () => {
+    expect(stripRequote("¹ In the beginning was the Word. \n² The same was in the beginning. \n\nAugustine said...")).toBe("Augustine said...");
+    expect(stripRequote("¹⁰ Making request. \n\nComment.")).toBe("Comment.");
+    expect(stripRequote("1. In the beginning. Calvin lemma stays.")).toBe("1. In the beginning. Calvin lemma stays.");
+  });
+});
+
+describe("formatCommentaryText", () => {
+  it("double-spaces after periods and keeps paragraph breaks", () => {
+    const out = formatCommentaryText("First sentence. Second sentence.\n\nNew paragraph. More.");
+    expect(out.split("\n\n")).toHaveLength(2);
+    expect(out).toContain(".\u00A0\u00A0Second");
+    expect(out).toContain(".\u00A0\u00A0More");
   });
 });

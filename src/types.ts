@@ -73,11 +73,19 @@ export type LoopItem =
       section_title?: string;
     };
 
-export type Speed = "slow" | "medium" | "fast";
+export type Speed = "very-slow" | "slow" | "medium" | "fast";
 export type Theme = "light" | "dark";
+export type ScrollMode = "vertical" | "horizontal";
+export type Commentary = "none" | "henry" | "calvin";
+export type FontSize = "s" | "m" | "l" | "xl";
+/** Start-only. Legacy end/henry may still appear in old localStorage. */
 export interface Prefs {
-  range: { book_id: string; start: VersePoint; end: VersePoint };
-  henry: boolean;
+  range: { book_id: string; start: VersePoint; end?: VersePoint };
+  /** geneva1599 | kj16 | kjv */
+  edition: string;
+  commentary: Commentary;
+  fontSize: FontSize;
   speed: Speed;
   theme: Theme;
+  mode: ScrollMode;
 }
