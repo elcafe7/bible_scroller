@@ -41,3 +41,8 @@ temp/
 data/
 *.db
 *.zip
+lex-data/
+notes/
+scan-report/
+__pycache__/
+*.pyc
