@@ -129,6 +129,7 @@ jobs:
           BIBLE_SCROLLER_KJV_DB: ${{ github.workspace }}/lex-data/runtime-data/bible_versions/kjv.db
           BIBLE_SCROLLER_KJ16_DB: ${{ github.workspace }}/lex-data/runtime-data/bible_versions/kj16.db
           BIBLE_SCROLLER_HENRY_DB: ${{ github.workspace }}/lex-data/runtime-data/commentaries/matthew_henry.db
+          BIBLE_SCROLLER_CALVIN_DB: ${{ github.workspace }}/lex-data/runtime-data/commentaries/john_calvin.db
         run: |
           npm run build-data
           # Never ship the John 1 test fixture as a release.
