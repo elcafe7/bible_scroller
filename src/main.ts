@@ -214,7 +214,7 @@ function setSpeed(s: Speed) {
   refreshSpeed();
   persist();
 }
-/** Percent on top of the speed preset (50–300, saved). */
+/** Percent on top of the speed preset (10–300, saved). */
 function setSpeedPct(v: unknown, writeField = true) {
   const pct = clampPct(v);
   prefs.speedPct = pct;

@@ -23,10 +23,10 @@ const mem = (init: Record<string, string> = {}): KV => {
 
 describe("clampPct", () => {
   it("clamps to 50–300, rounds, and falls back to 100 for junk", () => {
-    expect([PCT_MIN, PCT_MAX, PCT_DEFAULT]).toEqual([50, 300, 100]);
-    expect(clampPct(10)).toBe(50);
-    expect(clampPct(0)).toBe(50);
-    expect(clampPct(-40)).toBe(50);
+    expect([PCT_MIN, PCT_MAX, PCT_DEFAULT]).toEqual([10, 300, 100]);
+    expect(clampPct(5)).toBe(10);
+    expect(clampPct(0)).toBe(10);
+    expect(clampPct(-40)).toBe(10);
     expect(clampPct(999)).toBe(300);
     expect(clampPct(Infinity)).toBe(PCT_DEFAULT);
     expect(clampPct(125.6)).toBe(126);
@@ -44,7 +44,7 @@ describe("percent prefs", () => {
     savePrefs(st, { ...defaultPrefs(meta), fontPct: 175, speedPct: 60 });
     expect(loadPrefs(st, meta)).toMatchObject({ fontPct: 175, speedPct: 60 });
     expect(JSON.parse(st.getItem(PREFS_KEY)!)).toMatchObject({ fontPct: 175, speedPct: 60 });
-    expect(loadPrefs(mem({ [PREFS_KEY]: JSON.stringify({ fontPct: 9000, speedPct: -5 }) }), meta)).toMatchObject({ fontPct: 300, speedPct: 50 });
+    expect(loadPrefs(mem({ [PREFS_KEY]: JSON.stringify({ fontPct: 9000, speedPct: -5 }) }), meta)).toMatchObject({ fontPct: 300, speedPct: 10 });
     expect(loadPrefs(mem({ [PREFS_KEY]: JSON.stringify({ fontPct: "big", speedPct: null }) }), meta)).toMatchObject({ fontPct: 100, speedPct: 100 });
     expect(loadPrefs(mem({ [PREFS_KEY]: JSON.stringify({ speed: "slow", fontSize: "xl" }) }), meta)).toMatchObject({ speed: "slow", fontSize: "xl", fontPct: 100, speedPct: 100 });
     savePrefs(st, { ...defaultPrefs(meta), fontPct: 12345, speedPct: Number.NaN });

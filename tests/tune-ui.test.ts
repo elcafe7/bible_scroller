@@ -13,9 +13,9 @@ const ROOT = resolve(import.meta.dirname, "..");
 const html = readFileSync(resolve(ROOT, "index.html"), "utf8");
 
 describe("settings: text size % and speed % inputs", () => {
-  it("markup: labelled number inputs 50–300, keyboard reachable, existing controls untouched", () => {
+  it("markup: labelled number inputs 10–300, keyboard reachable, existing controls untouched", () => {
     for (const [id, text] of [["speed-pct", "Speed %"], ["size-pct", "Size %"]] as const) {
-      const input = new RegExp(`<input id="${id}" type="number"[^>]*min="50" max="300"`).test(html);
+      const input = new RegExp(`<input id="${id}" type="number"[^>]*min="10" max="300"`).test(html);
       expect(input, id).toBe(true);
       expect(html).toContain(`<label class="pct" for="${id}"><span>${text}</span>`);
       expect(html).not.toMatch(new RegExp(`id="${id}"[^>]*tabindex="-1"`));
@@ -50,12 +50,12 @@ describe("settings: text size % and speed % inputs", () => {
     commit(size);
     expect(saved().fontPct).toBe(150);
 
-    type(speed, "40"); // out of range while typing: not applied yet, field left alone
-    expect(speed.value).toBe("40");
+    type(speed, "5"); // out of range while typing: not applied yet, field left alone
+    expect(speed.value).toBe("5");
     expect(saved().speedPct).toBe(100);
     commit(speed);
-    expect(speed.value).toBe("50");
-    expect(saved().speedPct).toBe(50);
+    expect(speed.value).toBe("10");
+    expect(saved().speedPct).toBe(10);
 
     type(speed, "9999");
     commit(speed);
