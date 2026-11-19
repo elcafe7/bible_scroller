@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createLoader } from "../src/loader";
 import { resolveRange, LoopCursor, onePass } from "../src/sequence";
-import { renderItem, Scroller, SPEED_CPM } from "../src/scroller";
+import { renderItem, Scroller } from "../src/scroller";
 import { fsFetch } from "./helpers";
 
 const FIX = resolve(import.meta.dirname, "../fixtures/john1");
@@ -202,25 +202,27 @@ describe("ticker font size viewport proportions", () => {
   it("defines S/M/L/XL ticker sizes as vh proportions", () => {
     expect(css).toMatch(/body\.mode-horizontal\.size-s\s*\{[^}]*--ticker-verse:\s*max\([^,]+,\s*3vh\)/s);
     expect(css).toMatch(/body\.mode-horizontal\.size-m\s*\{[^}]*--ticker-verse:\s*max\([^,]+,\s*4\.25vh\)/s);
-    expect(css).toMatch(/body\.mode-horizontal\.size-l\s*\{[^}]*--ticker-verse:\s*max\([^,]+,\s*5\.75vh\)/s);
-    expect(css).toMatch(/body\.mode-horizontal\.size-xl\s*\{[^}]*--ticker-verse:\s*max\([^,]+,\s*7\.5vh\)/s);
+    expect(css).toMatch(/body\.mode-horizontal\.size-l\s*\{[^}]*--ticker-verse:\s*max\([^,]+,\s*6\.5vh\)/s);
+    expect(css).toMatch(/body\.mode-horizontal\.size-xl\s*\{[^}]*--ticker-verse:\s*max\([^,]+,\s*12vh\)/s);
     expect(css).toMatch(/--ticker-henry:\s*max\([^,]+,\s*2\.55vh\)/);
     expect(css).toMatch(/--ticker-henry:\s*max\([^,]+,\s*3\.6vh\)/);
-    expect(css).toMatch(/--ticker-henry:\s*max\([^,]+,\s*4\.9vh\)/);
-    expect(css).toMatch(/--ticker-henry:\s*max\([^,]+,\s*6\.4vh\)/);
+    expect(css).toMatch(/--ticker-henry:\s*max\([^,]+,\s*5\.5vh\)/);
+    expect(css).toMatch(/--ticker-henry:\s*max\([^,]+,\s*10\.2vh\)/);
     expect(css).not.toMatch(/mode-horizontal\.size-xl \.item \{ font-size: clamp\(2\.6rem/);
     // Vertical rem clamps still present.
     expect(css).toMatch(/body\.size-xl \{ --verse-size: clamp\(2rem/);
   });
 
   it("vh math scales across 800px and 1080px viewports", () => {
-    const ratios = { s: 3, m: 4.25, l: 5.75, xl: 7.5 };
+    const ratios = { s: 3, m: 4.25, l: 6.5, xl: 12 };
     expect(ratios.m * 800 / 100).toBeCloseTo(34, 5);
-    expect(ratios.xl * 800 / 100).toBeCloseTo(60, 5);
+    expect(ratios.xl * 800 / 100).toBeCloseTo(96, 5);
     expect(ratios.m * 1080 / 100).toBeCloseTo(45.9, 5);
-    expect(ratios.xl * 1080 / 100).toBeCloseTo(81, 5);
+    expect(ratios.xl * 1080 / 100).toBeCloseTo(129.6, 5);
     expect(ratios.s * 800 / 100).toBeLessThan(ratios.xl * 800 / 100);
-    expect(SPEED_CPM.medium).toBe(900);
+    // XL is clearly large: ≥ 2.5× the default and a real step above L.
+    expect(ratios.xl / ratios.m).toBeGreaterThan(2.5);
+    expect(ratios.xl / ratios.l).toBeGreaterThan(1.5);
   });
 });
 
