@@ -85,7 +85,9 @@ describe.skipIf(!hasFull)("smoke: books across OT / NT / Apocrypha and editions"
 describe.skipIf(!hasFull)("smoke: full app boot in the DOM (picker + edition switch + Start)", () => {
   it("drives picker across editions and books, then starts a scroll", async () => {
     const html = readFileSync(resolve(ROOT, "index.html"), "utf8");
-    const bodyHtml = html.match(/<body[^>]*>([\s\S]*)<\/body>/)![1]!.replace(/<script[\s\S]*?<\/script>/g, "");
+    const parsed = new DOMParser().parseFromString(html, "text/html");
+    parsed.querySelectorAll("script").forEach((el) => el.remove());
+    const bodyHtml = parsed.body.innerHTML;
     document.body.className = "state-stopped mode-vertical";
     document.body.innerHTML = bodyHtml;
     localStorage.clear();
