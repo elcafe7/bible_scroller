@@ -32,7 +32,7 @@ def run_script(script, *args):
         check=False,
         env={
             "PATH": "/usr/bin:/bin",
-            "HOME": "/tmp",
+            "HOME": tempfile.gettempdir(),
             # Force failure if validation is skipped and gh is reached.
             "GH_TOKEN": "test-token-should-not-be-used",
             "GH_REPO": "elcafe7/test",
@@ -65,9 +65,11 @@ class ReleaseScriptTagTests(unittest.TestCase):
     def test_blocked_rejects_missing_reports_dir_after_valid_tag(self):
         # Valid tag must pass the allowlist, then fail on a missing reports dir
         # (still before any gh call that would open/update an issue).
-        proc = run_script(BLOCKED, VALID_TAG, "/tmp/does-not-exist-release-verify")
-        self.assertNotEqual(proc.returncode, 0, proc.stderr)
-        self.assertIn("reports directory", proc.stderr)
+        with tempfile.TemporaryDirectory() as tmp:
+            missing_reports = Path(tmp) / "does-not-exist-release-verify"
+            proc = run_script(BLOCKED, VALID_TAG, str(missing_reports))
+            self.assertNotEqual(proc.returncode, 0, proc.stderr)
+            self.assertIn("reports directory", proc.stderr)
 
 
 if __name__ == "__main__":

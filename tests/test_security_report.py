@@ -58,7 +58,7 @@ def make_inputs(tmp: Path):
 
 
 def run(script, *args, env=None, cwd=None):
-    base = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": "/tmp"}
+    base = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": tempfile.gettempdir()}
     base.update(env or {})
     return subprocess.run(["bash", str(script), *args], capture_output=True, text=True,
                           check=False, env=base, cwd=cwd)
