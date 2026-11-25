@@ -1,0 +1,11 @@
+{
+  "tag": "v0.2.1",
+  "timestamp": "20261125T205041Z",
+  "date_utc": "2026-11-25T20:50:41Z",
+  "status": "published",
+  "result": "pass",
+  "folder": "reports/v0.2.1_20261125T205041Z",
+  "summary": "reports/v0.2.1_20261125T205041Z/summary.md",
+  "release_url": "https://github.com/elcafe7/bible_scroller/releases/tag/v0.2.1",
+  "run_url": "https://github.com/elcafe7/bible_scroller/actions/runs/45698603858"
+}
