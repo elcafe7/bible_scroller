@@ -4,7 +4,8 @@ import importlib.util
 import json
 import os
 import shutil
-import subprocess
+# Test harnesses use subprocess to exercise real CLI boundaries with fixed executables and isolated temporary data.
+import subprocess  # nosec B404
 import sys
 import tempfile
 import unittest
@@ -23,7 +24,8 @@ def gate_env(workspace):
 
 def run_in(workspace, *args):
     """Run the gate with GITHUB_WORKSPACE (and cwd) set to workspace."""
-    return subprocess.run(
+    # Arguments are fixed by the tests; executable arrays avoid shell parsing.
+    return subprocess.run(  # nosec B603
         [sys.executable, str(GATE), *args],
         capture_output=True, text=True, check=False,
         cwd=str(workspace), env=gate_env(workspace),
@@ -188,10 +190,14 @@ class OsvGatePathTests(unittest.TestCase):
     def test_cwd_is_base_without_github_workspace(self):
         env = dict(os.environ)
         env.pop("GITHUB_WORKSPACE", None)
-        proc = subprocess.run([sys.executable, str(GATE), "../outside/scan.json", "r.md"],
+        # Arguments are fixed by the tests; executable arrays avoid shell parsing.
+        proc = subprocess.run(  # nosec B603
+            [sys.executable, str(GATE), "../outside/scan.json", "r.md"],
                               capture_output=True, text=True, check=False, cwd=str(self.ws), env=env)
         self.assertEqual(proc.returncode, 2)
-        proc = subprocess.run([sys.executable, str(GATE), "scan.json", "r.md"],
+        # Arguments are fixed by the tests; executable arrays avoid shell parsing.
+        proc = subprocess.run(  # nosec B603
+            [sys.executable, str(GATE), "scan.json", "r.md"],
                               capture_output=True, text=True, check=False, cwd=str(self.ws), env=env)
         self.assertEqual(proc.returncode, 0, proc.stderr)
 
