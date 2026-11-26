@@ -5,9 +5,9 @@
 **Scroll is a leisurely Bible reading app.**
 Let the Bible roll gently up your screen at the pace you choose.
 
-### [⬇ Download for offline use](https://github.com/elcafe7/bible_scroller/releases/latest/download/bible_scroller-0.2.1.zip)
+### [⬇ Download for offline use](https://github.com/elcafe7/bible_scroller/releases/latest/download/bible_scroller-0.2.2.zip)
 
-<sub>bible_scroller-0.2.1.zip · about 25 MB · free · <a href="https://github.com/elcafe7/bible_scroller/releases/latest">release page</a></sub>
+<sub>bible_scroller-0.2.2.zip · about 25 MB · free · <a href="https://github.com/elcafe7/bible_scroller/releases/latest">release page</a></sub>
 
 [**Try it online**](https://apocalypse.press/scroll/) · [Word](https://apocalypse.press/word/) · [Verse](https://apocalypse.press/verse/)
 
@@ -47,7 +47,7 @@ Open **[apocalypse.press/scroll](https://apocalypse.press/scroll/)** in any brow
 
 Want to read without the internet, or without distractions? Download Scroll once and keep it.
 
-1. **Download** [bible_scroller-0.2.1.zip](https://github.com/elcafe7/bible_scroller/releases/latest/download/bible_scroller-0.2.1.zip) (about 25 MB).
+1. **Download** [bible_scroller-0.2.2.zip](https://github.com/elcafe7/bible_scroller/releases/latest/download/bible_scroller-0.2.2.zip) (about 25 MB).
 2. **Unzip it.** You get one folder called `bible_scroller`.
 3. **Open `index.html`** inside that folder by double-clicking it. It opens in Chrome, Edge, Safari, or Firefox.
 4. **That's it.** It works with no internet connection. Keep `index.html` in the folder with its `assets` and `data` folders.
