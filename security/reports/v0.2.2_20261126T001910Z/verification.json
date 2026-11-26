@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "tool": "OSV-Scanner",
+  "tool_version": "2.7.0",
+  "date": "2026-11-26",
+  "scanned_at": "2026-11-26T00:18:31Z",
+  "result": "pass",
+  "known_vulnerabilities": 0,
+  "unscored": 0,
+  "threshold_cvss": 7.0,
+  "report_url": "https://github.com/elcafe7/bible_scroller/releases/download/v0.2.2/bible_scroller-0.2.2-osv-scan.md",
+  "release": "v0.2.2",
+  "repository": "elcafe7/bible_scroller",
+  "stale_after_days": 30
+}

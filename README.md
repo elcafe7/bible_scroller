@@ -181,5 +181,5 @@ OpenSSF Scorecard JSON. Index of all runs, newest first:
 [security/latest.json](security/latest.json)).
 
 <!-- security-reports:start -->
-Latest: `v0.2.1` on 2026-11-25 20:50:41 UTC, result **pass** ([summary](security/reports/v0.2.1_20261125T205041Z/summary.md)). All runs: [security/README.md](security/README.md).
+Latest: `v0.2.2` on 2026-11-26 00:19:10 UTC, result **pass** ([summary](security/reports/v0.2.2_20261126T001910Z/summary.md)). All runs: [security/README.md](security/README.md).
 <!-- security-reports:end -->
