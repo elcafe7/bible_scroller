@@ -1,6 +1,7 @@
 """Reject malicious release tags before they reach gh (shell-injection guard)."""
 
-import subprocess
+# Test harnesses use subprocess to exercise real CLI boundaries with fixed executables and isolated temporary data.
+import subprocess  # nosec B404
 import tempfile
 import unittest
 from pathlib import Path
@@ -25,8 +26,9 @@ VALID_TAG = "v1.2.3"
 
 
 def run_script(script, *args):
-    return subprocess.run(
-        ["bash", str(script), *args],
+    # Arguments are fixed by the tests; executable arrays avoid shell parsing.
+    return subprocess.run(  # nosec B603
+        ["/bin/bash", str(script), *args],
         capture_output=True,
         text=True,
         check=False,
@@ -34,7 +36,6 @@ def run_script(script, *args):
             "PATH": "/usr/bin:/bin",
             "HOME": tempfile.gettempdir(),
             # Force failure if validation is skipped and gh is reached.
-            "GH_TOKEN": "test-token-should-not-be-used",
             "GH_REPO": "elcafe7/test",
             "RUN_URL": "https://example.test/run",
             "FAILED_JOBS": "build-scan: failure",

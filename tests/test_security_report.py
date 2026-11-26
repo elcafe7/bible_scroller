@@ -3,7 +3,9 @@
 import hashlib
 import json
 import os
-import subprocess
+import shutil
+# Test harnesses use subprocess to exercise real CLI boundaries with fixed executables and isolated temporary data.
+import subprocess  # nosec B404
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,6 +15,7 @@ WRITER = ROOT / "scripts" / "write_security_report.sh"
 INDEX = ROOT / "scripts" / "update_security_index.sh"
 COMMIT = ROOT / "scripts" / "commit_security_report.sh"
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
+GIT = shutil.which("git") or "git"
 
 MALICIOUS_TAGS = (
     "v1;rm -rf /",
@@ -60,7 +63,9 @@ def make_inputs(tmp: Path):
 def run(script, *args, env=None, cwd=None):
     base = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": tempfile.gettempdir()}
     base.update(env or {})
-    return subprocess.run(["bash", str(script), *args], capture_output=True, text=True,
+    # Arguments are fixed by the tests; executable arrays avoid shell parsing.
+    return subprocess.run(  # nosec B603
+        ["/bin/bash", str(script), *args], capture_output=True, text=True,
                           check=False, env=base, cwd=cwd)
 
 
@@ -320,15 +325,21 @@ class IndexAndCommitTests(unittest.TestCase):
         run(WRITER, str(art), env=writer_env("v1.2.3", dist, vt, sc))
         origin = tmp / "origin.git"
         work = tmp / "work"
-        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
-        subprocess.run(["git", "clone", "-q", str(origin), str(work)], check=True, capture_output=True)
+        # Arguments are fixed by the tests; executable arrays avoid shell parsing.
+        subprocess.run(  # nosec B603
+            [GIT, "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+        # Arguments are fixed by the tests; executable arrays avoid shell parsing.
+        subprocess.run(  # nosec B603
+            [GIT, "clone", "-q", str(origin), str(work)], check=True, capture_output=True)
         (work / "README.md").write_text(README)
         (work / "scripts").mkdir()
         for s in (WRITER, INDEX, COMMIT):
             (work / "scripts" / s.name).write_text(s.read_text())
         ident = ["-c", "user.name=t", "-c", "user.email=t@t"]
         for args in (["add", "."], ["commit", "-q", "-m", "init"], ["push", "-q", "origin", "HEAD:main"]):
-            subprocess.run(["git", *ident, *args], cwd=work, check=True, capture_output=True)
+            # Arguments are fixed by the tests; executable arrays avoid shell parsing.
+            subprocess.run(  # nosec B603
+                [GIT, *ident, *args], cwd=work, check=True, capture_output=True)
         return art, origin, work
 
     @staticmethod
@@ -342,7 +353,9 @@ class IndexAndCommitTests(unittest.TestCase):
         return f"{bindir}:{os.environ.get('PATH', '/usr/bin:/bin')}"
 
     def _git_out(self, origin, *args):
-        return subprocess.run(["git", "--git-dir", str(origin), *args],
+        # Arguments are fixed by the tests; executable arrays avoid shell parsing.
+        return subprocess.run(  # nosec B603
+            [GIT, "--git-dir", str(origin), *args],
                               capture_output=True, text=True, check=True).stdout
 
     def test_commit_rejects_bad_tags(self):
