@@ -2,12 +2,14 @@
 
 # Scroll
 
+**Version 0.2.2**
+
 **Scroll is a leisurely Bible reading app.**
 Let the Bible roll gently up your screen at the pace you choose.
 
 ### [⬇ Download for offline use](https://github.com/elcafe7/bible_scroller/releases/latest/download/bible_scroller-0.2.2.zip)
 
-<sub>bible_scroller-0.2.2.zip · about 25 MB · free · <a href="https://github.com/elcafe7/bible_scroller/releases/latest">release page</a></sub>
+<sub>version 0.2.2 · bible_scroller-0.2.2.zip · about 25 MB · free · <a href="https://github.com/elcafe7/bible_scroller/releases/latest">release page</a></sub>
 
 [**Try it online**](https://apocalypse.press/scroll/) · [Word](https://apocalypse.press/word/) · [Verse](https://apocalypse.press/verse/)
 
