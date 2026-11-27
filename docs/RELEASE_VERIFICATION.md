@@ -5,9 +5,10 @@ release workflow assumes. Workflows: [`release.yml`](../.github/workflows/releas
 [`scorecard.yml`](../.github/workflows/scorecard.yml); Dependabot:
 [`dependabot.yml`](../.github/dependabot.yml).
 
-Release files keep their existing names: `bible_scroller-<version>.zip` (one
-top-level `bible_scroller/` folder, built by `npm run pack`) and
-`SHA256SUMS`. The tag must equal `v` + the `package.json` version.
+Release files keep their existing names: `bible_scroller-<version>.zip` and
+`bible_scroller-<version>.tar.gz` (they unpack to a top-level `scroll-<version>/`
+folder, built by `npm run pack`) and `SHA256SUMS`. The tag must equal `v` + the
+`package.json` version.
 
 **Data source in CI:** `scripts/build-data.mjs` reads the public-domain
 databases from `elcafe7/lex` at a pinned commit (`LEX_DATA_REF` in
