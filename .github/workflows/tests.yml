@@ -1,0 +1,49 @@
+# Unit tests and typecheck on every pull request and every push to main
+# (OpenSSF Best Practices test_continuous_integration). A failing test
+# fails the job.
+#
+# Runs npm test (Vitest) and tsc --noEmit. Does not run build-data or pack:
+# those need Lex Bible databases and are release-only. Without generated
+# data/, tests use the John 1 fixture (see CONTRIBUTING.md).
+# Free tools only. Every action is pinned to a full commit SHA.
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Install dependencies from package-lock.json
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Typecheck and run unit tests
+        run: |
+          npx tsc --noEmit
+          npm test

@@ -50,10 +50,14 @@ Without the generated `data/` folder, builds and tests use the John 1 fixture.
 
 ## Continuous integration
 
-Every pull request runs **CodeQL** (GitHub code scanning), and it must pass
-before merging. The type check and unit tests run locally (above) and again in
-the release workflow ([`.github/workflows/release.yml`](.github/workflows/release.yml)),
-which won't publish a release unless they pass.
+Every pull request runs these GitHub Actions checks, and they must pass before merging:
+
+- **Tests**: [`.github/workflows/tests.yml`](.github/workflows/tests.yml) (`npx tsc --noEmit` and `npm test`)
+- **CodeQL** (GitHub code scanning)
+
+Without the generated `data/` folder, CI uses the John 1 fixture, and the four ticker tests that need John 3 are skipped. The release
+workflow ([`.github/workflows/release.yml`](.github/workflows/release.yml))
+builds full data, runs the tests again, and won't publish a release unless they pass.
 
 ## Requirements for contributions
 
