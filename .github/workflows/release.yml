@@ -161,7 +161,7 @@ jobs:
           cat > notes/intro.md <<EOF
           Offline build of Scroll (bible_scroller) ${VERSION}.
 
-          Open: unzip (or tar -xzf the .tar.gz), then double-click bible_scroller/index.html. No server, no install, no internet.
+          Open: unzip (or tar -xzf the .tar.gz), then double-click scroll-${VERSION}/index.html. No server, no install, no internet.
 
           SHA256: see SHA256SUMS.
           EOF

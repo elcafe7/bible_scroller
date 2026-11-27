@@ -7,16 +7,16 @@ import { describe, expect, it } from "vitest";
 // @ts-ignore plain .mjs build script, no types
 import { assertSafeName, gzipDeterministic, tarBytes, writeTarGz } from "../scripts/pack-tar.mjs";
 // @ts-ignore plain .mjs build script, no types
-import { writeZip } from "../scripts/pack-zip.mjs";
+import { topFolder, writeZip } from "../scripts/pack-zip.mjs";
 
 function sha256(buf: Buffer) {
   return createHash("sha256").update(buf).digest("hex");
 }
 
 const entries = [
-  { name: "bible_scroller/README.txt", raw: Buffer.from("hello from readme\n") },
-  { name: "bible_scroller/index.html", raw: Buffer.from("<!doctype html><title>Scroll 0.2.2</title>\n") },
-  { name: "bible_scroller/data/geneva/meta.json.js", raw: Buffer.from("globalThis.x=1;\n") },
+  { name: "scroll-0.2.2/README.txt", raw: Buffer.from("hello from readme\n") },
+  { name: "scroll-0.2.2/index.html", raw: Buffer.from("<!doctype html><title>Scroll 0.2.2</title>\n") },
+  { name: "scroll-0.2.2/data/geneva/meta.json.js", raw: Buffer.from("globalThis.x=1;\n") },
 ].map((e) => ({ ...e, mtime: new Date("2020-01-02T03:04:05Z") }));
 
 describe("deterministic tar.gz", () => {
@@ -42,8 +42,8 @@ describe("deterministic tar.gz", () => {
 
   it("refuses absolute, parent, and directory names", () => {
     expect(() => assertSafeName("/tmp/x")).toThrow();
-    expect(() => assertSafeName("bible_scroller/../secret")).toThrow();
-    expect(() => assertSafeName("bible_scroller/")).toThrow();
+    expect(() => assertSafeName("scroll-0.2.2/../secret")).toThrow();
+    expect(() => assertSafeName("scroll-0.2.2/")).toThrow();
   });
 
   it("gzipDeterministic strips host-dependent header fields", () => {
@@ -89,7 +89,7 @@ def files(root):
     return {p.relative_to(r).as_posix(): p.read_bytes() for p in r.rglob("*") if p.is_file()}
 zf, tf = files(zd), files(td)
 assert zf == tf, (sorted(zf), sorted(tf))
-assert set(zf) == {"bible_scroller/README.txt", "bible_scroller/index.html", "bible_scroller/data/geneva/meta.json.js"}
+assert set(zf) == {"scroll-0.2.2/README.txt", "scroll-0.2.2/index.html", "scroll-0.2.2/data/geneva/meta.json.js"}
 print("ok", len(zf))
 `])
     } finally {
@@ -99,12 +99,19 @@ print("ok", len(zf))
 
   it("tarBytes lists members in sorted order", () => {
     const raw = tarBytes([
-      { name: "bible_scroller/z.txt", raw: Buffer.from("z") },
-      { name: "bible_scroller/a.txt", raw: Buffer.from("a") },
+      { name: "scroll-0.2.2/z.txt", raw: Buffer.from("z") },
+      { name: "scroll-0.2.2/a.txt", raw: Buffer.from("a") },
     ]);
-    const a = raw.indexOf(Buffer.from("bible_scroller/a.txt"));
-    const z = raw.indexOf(Buffer.from("bible_scroller/z.txt"));
+    const a = raw.indexOf(Buffer.from("scroll-0.2.2/a.txt"));
+    const z = raw.indexOf(Buffer.from("scroll-0.2.2/z.txt"));
     expect(a).toBeGreaterThanOrEqual(0);
     expect(z).toBeGreaterThan(a);
+  });
+});
+
+describe("topFolder", () => {
+  it("is scroll-<version>/", () => {
+    expect(topFolder("0.2.2")).toBe("scroll-0.2.2/");
+    expect(() => topFolder("offline-20261125-1")).toThrow();
   });
 });

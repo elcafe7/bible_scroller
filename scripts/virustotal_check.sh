@@ -4,6 +4,7 @@
 # fails closed before calling this script, see virustotal_not_run.sh).
 #
 # Usage: virustotal_check.sh <report.md> <file>...
+# Every file argument after the report path is scanned (zip and tar.gz).
 #
 # Uploads each file, waits for the analysis, and writes a Markdown report.
 # Exits 1 (release blocked) if any engine flags a file as malicious, or if

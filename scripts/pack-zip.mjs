@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Pack dist/ (already containing data/) into bible_scroller-<version>.zip and a
 // deterministic bible_scroller-<version>.tar.gz, both with top-level folder
-// bible_scroller/. Same files and bytes in both. Dependency-free zip via
-// node:zlib. Refuses forbidden files. The .tar.gz uses a fixed mtime/uid/gid.
+// scroll-<version>/. Same files and bytes in both. The download names stay
+// bible_scroller-<version>.*. Dependency-free zip via node:zlib. Refuses
+// forbidden files. The .tar.gz uses a fixed mtime/uid/gid.
 import { readdirSync, readFileSync, statSync, writeFileSync, existsSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -13,7 +14,12 @@ import { writeTarGz } from "./pack-tar.mjs";
 const ROOT = resolve(import.meta.dirname, "..");
 const DIST = join(ROOT, "dist");
 const FORBIDDEN = /(^|\/)(node_modules|\.git)(\/|$)|\.db$|(^|\/)\.env(\.|$)|\.pem$|\.key$/i;
-const TOP = "bible_scroller/";
+
+/** Packed root folder, e.g. scroll-0.2.2/. */
+export function topFolder(version) {
+  if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error(`pack: bad version ${version}`);
+  return `scroll-${version}/`;
+}
 
 function walk(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
@@ -31,11 +37,12 @@ export function dataWrapper(key, json) {
   return Buffer.from(`(globalThis.__SCROLL_DATA__=globalThis.__SCROLL_DATA__||{})[${JSON.stringify(key)}]=${body};\n`, "utf8");
 }
 
-/** Packed members: `{ name, raw, mtime }`, name includes the bible_scroller/ prefix. */
+/** Packed members: `{ name, raw, mtime }`, name includes the scroll-<version>/ prefix. */
 export function collectEntries(dist, version) {
   if (!existsSync(join(dist, "index.html")) || !existsSync(join(dist, "data/geneva/meta.json"))) {
     throw new Error("pack: dist/index.html or dist/data/geneva/meta.json missing; run npm run build first");
   }
+  const top = topFolder(version);
   // Offline copies never phone home: drop the GA loader (offline-html.mjs strips its <script> tag).
   const files = walk(dist).filter((f) => relative(dist, f) !== "ga-ap.js").sort();
   const entries = [];
@@ -44,11 +51,11 @@ export function collectEntries(dist, version) {
     // data/**/*.json ships as a classic-script wrapper (data/x.json.js) so the unzipped copy works
     // from file:// in Chrome/Edge too (they block fetch() of local files). Only the wrapper is packed.
     const isData = /^data\/.+\.json$/.test(rel);
-    const name = TOP + rel + (isData ? ".js" : "");
+    const name = top + rel + (isData ? ".js" : "");
     if (FORBIDDEN.test(name)) throw new Error(`pack: forbidden file in dist: ${name}`);
-    const raw = name === TOP + "index.html" ? Buffer.from(offlineHtml(readFileSync(f, "utf8"), version), "utf8")
+    const raw = name === top + "index.html" ? Buffer.from(offlineHtml(readFileSync(f, "utf8"), version), "utf8")
       : isData ? dataWrapper(rel.slice("data/".length), readFileSync(f, "utf8"))
-      : name === TOP + "README.txt" ? Buffer.from(
+      : name === top + "README.txt" ? Buffer.from(
           readFileSync(f, "utf8").replace(/^Scroll \(bible_scroller\) \d+\.\d+\.\d+/, `Scroll (bible_scroller) ${version}`),
           "utf8",
         )

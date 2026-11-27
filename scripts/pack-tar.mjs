@@ -63,7 +63,7 @@ export function tarBytes(entries, mtime = TAR_MTIME) {
 export function gzipDeterministic(raw) {
   const gz = gzipSync(raw, { level: 9 });
   if (gz[0] !== 0x1f || gz[1] !== 0x8b) fail("gzip magic missing");
-  if (gz[3] & 0x08) fail("gzip filename flag set; header is not a fixed size");
+  if (gz[3] !== 0) fail(`gzip flags must be 0 (got ${gz[3]}); header is not a fixed size`);
   gz[3] = 0; // flags
   gz.writeUInt32LE(0, 4); // mtime
   gz[8] = 2; // max compression

@@ -6,8 +6,8 @@ release workflow assumes. Workflows: [`release.yml`](../.github/workflows/releas
 [`dependabot.yml`](../.github/dependabot.yml).
 
 Release files keep their existing names: `bible_scroller-<version>.zip` and
-`bible_scroller-<version>.tar.gz` (the same top-level `bible_scroller/` folder,
-built by `npm run pack`) and `SHA256SUMS`. The tag must equal `v` + the
+`bible_scroller-<version>.tar.gz` (they unpack to a top-level `scroll-<version>/`
+folder, built by `npm run pack`) and `SHA256SUMS`. The tag must equal `v` + the
 `package.json` version.
 
 **Data source in CI:** `scripts/build-data.mjs` reads the public-domain

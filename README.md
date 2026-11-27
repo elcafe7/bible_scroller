@@ -50,7 +50,7 @@ Open **[apocalypse.press/scroll](https://apocalypse.press/scroll/)** in any brow
 Want to read without the internet, or without distractions? Download Scroll once and keep it.
 
 1. **Download** [bible_scroller-0.2.2.zip](https://github.com/elcafe7/bible_scroller/releases/latest/download/bible_scroller-0.2.2.zip) (about 25 MB).
-2. **Unzip it.** You get one folder called `bible_scroller`.
+2. **Unzip it.** You get one folder called `scroll-0.2.2`.
 3. **Open `index.html`** inside that folder by double-clicking it. It opens in Chrome, Edge, Safari, or Firefox.
 4. **That's it.** It works with no internet connection. Keep `index.html` in the folder with its `assets` and `data` folders.
 
@@ -121,7 +121,7 @@ npm install
 npm run build-data   # Lex SQLite (read-only) -> data/**/*.json; needs the Lex databases on this machine
 npm run build        # tsc --noEmit + Vite -> dist/
 npm test             # vitest
-npm run pack         # -> bible_scroller-<version>.zip and .tar.gz (data as data/**/*.json.js so it opens from file://)
+npm run pack         # -> bible_scroller-<version>.zip and .tar.gz, unpacking to scroll-<version>/ (data as data/**/*.json.js so it opens from file://)
 npm run stage-web -- <out>/scroll /scroll/   # web copy (data as .json) + .htaccess for apocalypse.press/scroll/
 ```
 
