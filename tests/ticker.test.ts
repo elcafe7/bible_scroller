@@ -13,6 +13,10 @@ const FIX = resolve(import.meta.dirname, "../fixtures/john1");
 const DATA = resolve(import.meta.dirname, "../data");
 const root = existsSync(resolve(DATA, "geneva/john.json")) ? DATA : FIX;
 const fetch = fsFetch(root);
+// The John 1 fixture has no chapter 3. These sequencing tests run in the
+// release workflow (which builds full data/) and skip on PRs that only have
+// the fixture.
+const hasJohn3 = root === DATA;
 
 type Spawnable = { spawnHorizontal: () => void };
 
@@ -64,7 +68,7 @@ describe("ticker sequencing (no simultaneous verse+commentary)", () => {
     expect(el.querySelectorAll(".ticker-row").length).toBe(2);
   });
 
-  it("John 3:16–21 + Henry: verses first (no line 2), then commentary on line 2", async () => {
+  it.skipIf(!hasJohn3)("John 3:16–21 + Henry: verses first (no line 2), then commentary on line 2", async () => {
     const loader = createLoader({ fetch });
     const meta = await loader.loadGenevaMeta();
     const john = await loader.loadGenevaBook("john");
@@ -107,7 +111,7 @@ describe("ticker sequencing (no simultaneous verse+commentary)", () => {
     scroller.pause();
   });
 
-  it("multi-section range: commentary chunks successive after each section's verses (LoopCursor order)", async () => {
+  it.skipIf(!hasJohn3)("multi-section range: commentary chunks successive after each section's verses (LoopCursor order)", async () => {
     const loader = createLoader({ fetch });
     const meta = await loader.loadGenevaMeta();
     const john = await loader.loadGenevaBook("john");
@@ -145,7 +149,7 @@ describe("ticker sequencing (no simultaneous verse+commentary)", () => {
     scroller.pause();
   });
 
-  it("verse-only (commentary off) never shows line 2", async () => {
+  it.skipIf(!hasJohn3)("verse-only (commentary off) never shows line 2", async () => {
     const loader = createLoader({ fetch });
     const meta = await loader.loadGenevaMeta();
     const john = await loader.loadGenevaBook("john");
@@ -168,7 +172,7 @@ describe("ticker sequencing (no simultaneous verse+commentary)", () => {
     scroller.pause();
   });
 
-  it("pause works mid-sequence (verse phase and after advancing to commentary)", async () => {
+  it.skipIf(!hasJohn3)("pause works mid-sequence (verse phase and after advancing to commentary)", async () => {
     const loader = createLoader({ fetch });
     const meta = await loader.loadGenevaMeta();
     const john = await loader.loadGenevaBook("john");
