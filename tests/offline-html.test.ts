@@ -58,6 +58,7 @@ describe("version source of truth", () => {
     expect(readme).toContain(`# Scroll\n\n**Version ${version}**\n`);
     expect(readme).toContain(`<sub>version ${version} · bible_scroller-${version}.zip`);
     expect(readme).toContain(`/download/bible_scroller-${version}.zip`);
+    expect(readme).toContain(`/download/bible_scroller-${version}.tar.gz`);
   });
 
   it("public/README.txt leads with the same version", () => {
