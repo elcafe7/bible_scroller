@@ -220,6 +220,36 @@ body.state-running #site-footer { display: none; }
   border: 1px solid var(--border-strong); border-radius: 0;
   color: var(--accent-bright); font-size: 1rem; font-family: var(--serif);
 }
+
+/* Offline zip only: offline-html.mjs adds .app-version and .welcome-version. Harmless online. */
+.app-version {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2em 0.6em;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  color: var(--ink-quiet);
+  font-family: var(--ui);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.welcome-version {
+  margin: 0 0 0.35rem;
+  text-align: center;
+  color: var(--ink-quiet);
+  font-family: var(--ui);
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+#site-footer .offline-version {
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  font-size: 0.78rem;
+}
 .hint { margin: 1rem 0 0; text-align: center; font-size: 0.78rem; line-height: 1.45; color: var(--ink-quiet); opacity: 0.85; }
 .range-hint { margin: 0; font-size: 0.78rem; color: var(--ink-quiet); text-align: center; }
 fieldset { border: 0; margin: 0; padding: 0; }

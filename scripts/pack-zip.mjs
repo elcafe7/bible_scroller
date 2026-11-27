@@ -48,6 +48,10 @@ for (const f of files) {
   if (FORBIDDEN.test(name)) { console.error(`pack: forbidden file in dist: ${name}`); process.exit(1); }
   const raw = name === TOP + "index.html" ? Buffer.from(offlineHtml(readFileSync(f, "utf8"), version), "utf8")
     : isData ? dataWrapper(rel.slice("data/".length), readFileSync(f, "utf8"))
+    : name === TOP + "README.txt" ? Buffer.from(
+        readFileSync(f, "utf8").replace(/^Scroll \(bible_scroller\) \d+\.\d+\.\d+/, `Scroll (bible_scroller) ${version}`),
+        "utf8",
+      )
     : readFileSync(f);
   const def = deflateRawSync(raw, { level: 9 });
   const useDeflate = def.length < raw.length;

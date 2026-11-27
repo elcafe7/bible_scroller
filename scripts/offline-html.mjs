@@ -1,7 +1,8 @@
 // Offline-zip rewrite of the built index.html (used by pack-zip.mjs; unit-tested in tests/offline-html.test.ts).
 // The online page links the GitHub zip; inside the zip that link is pointless, so:
 //  - welcome card P3 becomes plain text saying this copy is already on the device;
-//  - the footer download line is replaced by the version ("Scroll 0.1.0");
+//  - the footer download line is replaced by the version ("Scroll 0.2.2");
+//  - a version pill is added beside the wordmark, and "Version X.Y.Z" under the welcome title;
 //  - the credit line gains a Donate link (offline copies only);
 //  - the Google Analytics loader tag is removed (offline copies never send analytics).
 
@@ -12,9 +13,17 @@ export const OFFLINE_CARD_SENTENCE = "This copy is already on your device for di
 /** @param {string} html built dist/index.html  @param {string} version package.json version */
 export function offlineHtml(html, version) {
   if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error(`offline-html: bad version ${version}`);
-  let card = 0, foot = 0;
+  let card = 0, foot = 0, mark = 0, welcomeVer = 0;
   const out = html
     .replace(/\s*<script src="\.\/ga-ap\.js" defer><\/script>/g, "")
+    .replace(/(<a class="wordmark" href=".\/">[\s\S]*?<\/a>)/, (m) => {
+      mark++;
+      return `${m}\n            <span class="app-version">Version ${version}</span>`;
+    })
+    .replace(/<h2 class="welcome-title" id="welcome-title">Scroll<\/h2>/, () => {
+      welcomeVer++;
+      return `<h2 class="welcome-title" id="welcome-title">Scroll</h2>\n        <p class="welcome-version">Version ${version}</p>`;
+    })
     .replace(/<p><a class="welcome-offline" data-offline-link [^>]*>[\s\S]*?<\/a><\/p>/, () => {
       card++;
       return `<p>${OFFLINE_CARD_SENTENCE}</p>`;
@@ -27,7 +36,9 @@ export function offlineHtml(html, version) {
       foot++;
       return `${lic} · <a href="${DONATE_URL}" target="_blank" rel="noopener noreferrer">Donate</a>${end}`;
     });
-  if (card !== 1 || foot !== 2) throw new Error("offline-html: welcome-card link or footer download line not found");
+  if (card !== 1 || foot !== 2 || mark !== 1 || welcomeVer !== 1) {
+    throw new Error("offline-html: welcome-card link, footer download line, wordmark, or welcome title not found");
+  }
   if (/ga-ap\.js|googletagmanager|G-0M3SF90ZGN|gtag/.test(out)) throw new Error("offline-html: analytics left in the offline index.html");
   if (/data-offline-link|data-offline-line/.test(out)) throw new Error("offline-html: offline download link left in index.html");
   const dialog = out.match(/<dialog class="welcome"[\s\S]*?<\/dialog>/)?.[0] ?? "";
